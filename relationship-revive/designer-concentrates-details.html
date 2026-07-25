@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+   <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+
+   <title>Sugarrush</title>
+   <link rel="shortcut icon" href="img/shortlogo.png" type="image/png" />
+   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css" />
+
+   <!-- Animation  -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+   <!-- Animation  -->
+
+   <link rel="stylesheet" href="css/nice-select.css">
+   <link rel="stylesheet" href="css/range-slider.css">
+   <link rel="stylesheet" href="css/global.css">
+   <link rel="stylesheet" href="css/style.css">
+   <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+   <header>
+      <nav class="navbar navbar-expand-lg">
+         <div class="container">
+            <div class="header-container">
+               <a class="navbar-brand animate__animated animate__rubberBand animate__delay-1s" href="index.html">
+                  <img src="img/shortlogo.png" alt="">
+               </a>
+
+               <div class="navigation">
+                  <div class="main-menu">
+                     <div class="toggle-nav" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+                        <span class="togglemenu">
+                           <span class="bar"></span>
+                           <span class="bar"></span>
+                           <span class="bar"></span>
+                        </span>
+                     </div>
+
+                     <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                        <div class="device-brandLogo d-block d-lg-none">
+                           <a class="" href="index.html">
+                              <img src="img/shortlogo.png" alt="">
+                           </a>
+                        </div>
+
+                        <ul class="navbar-nav ms-auto">
+                           <li class="nav-item">
+                              <a class="nav-link" href="authenticate.html">Authenticate</a>
+                           </li>
+
+                           <li class="nav-item dropdown ProductDropdown-menuList">
+                              <a class="nav-link dropdown-toggle" id="productMenu" href="javascript:void(0)"
+                                 data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                                 Product
+                              </a>
+
+                              <ul class="dropdown-menu dropdownList" aria-labelledby="ProductList">
+                                 <li class="title">Products</li>
+                                 <li>
+                                    <a class="dropdown-item" href="designer-concentrates-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/jar-new.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Designer Consentrates</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+
+                                 <li>
+                                    <a class="dropdown-item" href="secret-sauce-cartridges-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/product-img2.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Secret sauce cartridges</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+
+                                 <li>
+                                    <a class="dropdown-item" href="diamond-infused-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/gummies.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Diamonds infused gummies</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+                                 <li><a class="dropdown-item justify-content-center" href="shop.html">All products</a>
+                                 </li>
+                              </ul>
+                           </li>
+
+                           <li class="nav-item">
+                              <a class="nav-link" href="shop.html">Shop</a>
+                           </li>
+
+                           <li class="nav-item">
+                              <a class="nav-link" href="opportunity.html">Opportunity</a>
+                           </li>
+
+                           <li class="nav-item">
+                              <a class="nav-link" href="coming-soon.html">Community</a>
+                           </li>
+                        </ul>
+                     </div>
+
+                     <div class="nav-overlay" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar"></div>
+                  </div>
+
+                  <div class="icon-menu">
+                     <ul>
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/search.svg" alt="">
+                           </a>
+                        </li>
+
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/cart.svg" alt="">
+                           </a>
+                        </li>
+
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/user.svg" alt="">
+                           </a>
+                        </li>
+
+                        <li>
+                           <a class="ThemeBtn" href="coming-soon.html">
+                              <span>Exclusive</span>
+                           </a>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </nav>
+   </header>
+
+   <section class="fit-header"></section>
+
+   <section class="custom-space overflow-hidden">
+      <div class="container">
+         <div class="row justify-content-center gy-3">
+            <div class="col-lg-5 col-md-5 col-12">
+               <div class="ProductImage imgBox" data-aos="fade-right" data-aos-duration="2000">
+                  <img src="img/jar-new.png" class="" alt="">
+               </div>
+            </div>
+            <div class="col-lg-7 col-md-12 col-12">
+               <div class="ProductImageDetails px-lg-5">
+                  <div class="ProDetails headTitle" data-aos="fade-left" data-aos-duration="2000">
+                     <h2>Designer Concentrates</h2>
+                     <h5>Highest quality diamonds</h5>
+                     <div class="title-divider">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                     </div>
+                     <p>It's all in the name, sugar rush™. who we are and what we do is synonymous with loyalty
+                        and trust. born and bred in los angeles in 2005, our ethos has always been to exceed and
+                        set the</p>
+                  </div>
+
+                  <div class="ProVarint">
+                     <ul class="ProVarint-sec">
+                        <li class="Title">
+                           <span>
+                              INDICA
+                           </span>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info1.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/infgo2.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info3.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                     </ul>
+
+                     <ul class="ProVarint-sec">
+                        <li class="Title">
+                           <span>
+                              HYBRID
+                           </span>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info1.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/infgo2.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info3.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                     </ul>
+
+                     <ul class="ProVarint-sec">
+                        <li class="Title">
+                           <span>
+                              SATIVA
+                           </span>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info1.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/infgo2.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                        <li class="contactme" data-aos="flip-left" data-aos-duration="2000"
+                           data-aos-easing="ease-out-cubic">
+                           <img src="img/logos/info3.png" alt="">
+                           <button type="button" class="view_result" data-bs-toggle="modal"
+                              data-bs-target="#staticBackdrop">View
+                              Result</button>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </section>
+
+   <section class="custom-space secretCartridges-container bg-lightgray">
+      <div class="container">
+         <img src="icon/ellipse.svg" alt="" class="ellipse-effect">
+         <div class="row">
+            <div class="col-lg-12">
+               <div class="Title headTitle">
+                  <h2>You may also like</h2>
+                  <div class="title-divider">
+                     <span></span>
+                     <span></span>
+                     <span></span>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="row pt-5">
+            <div class="col-lg-12">
+               <div class="secretSauce-product">
+                  <!-- <img src="icon/planet.svg" alt="" class="effect-icon rotate-animation"> -->
+                  <div class="swiper productDetails">
+                     <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                           <div class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="img/product-img2.png" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Sweet Mango</h4>
+                                 <p>Indica - Indica</p>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div class="swiper-slide">
+                           <div class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="img/stilizy-img.png" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Cream Berry</h4>
+                                 <p>Indica - Indica</p>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div class="swiper-slide">
+                           <div class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="icon/box-imgyallow.svg" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Sweet Mango</h4>
+                                 <p>Indica - Indica</p>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div class="swiper-slide">
+                           <div class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="icon/box-imgred.svg" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Cream Berry</h4>
+                                 <p>Indica - Indica</p>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     <div class="swiper-button-next"></div>
+                     <div class="swiper-button-prev"></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </section>
+
+   <footer>
+      <div class="container">
+         <div class="row gy-3">
+            <div class="col-lg-4 col-md-6 col-12">
+               <div class="Footer-AboutBrands">
+                  <a class="navbar-brand" href="index.html" data-aos="zoom-in" data-aos-duration="2000">
+                     <img src="img/suger-rushLogo.png" alt="">
+                  </a>
+                  <p data-aos="fade-left" data-aos-duration="2000">Lorem Ipsum is simply dummy text of the
+                     printing and
+                     typesetting industry. Lorem Ipsum has been the industry's standard...</p>
+               </div>
+            </div>
+
+            <div class="col-lg-2 col-md-3 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Quick Links</h5>
+                  <ul>
+                     <li><a href="index.html">Home</a></li>
+                     <li><a href="coming-soon.html">About Us</a></li>
+                     <li><a href="coming-soon.html">Strains</a></li>
+                     <li><a href="coming-soon.html">Privacy Policy</a></li>
+                     <li><a href="coming-soon.html">Contact Us</a></li>
+                  </ul>
+               </div>
+            </div>
+
+            <div class="col-lg-2 col-md-3 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Strains</h5>
+                  <ul>
+                     <li><a href="coming-soon.html">View Strains</a></li>
+                     <li><a href="coming-soon.html">Gummies</a></li>
+                     <li><a href="coming-soon.html">Milks</a></li>
+                     <li><a href="coming-soon.html">Milk Censored</a></li>
+                     <li><a href="coming-soon.html">Gelato</a></li>
+                  </ul>
+               </div>
+            </div>
+
+            <div class="col-lg-4 col-md-12 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Location</h5>
+                  <p>2222 E Olympic Blvd, Los Angeles, CA 90021</p>
+                  <p>4665 W. Pico Blvd, Los Angeles, CA 90019</p>
+                  <p>Lic. No. C10-0000486-LIC & C11-0000883-LIC & C10-0000838-LIC</p>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div class="container">
+         <div class="row">
+            <div class="col-lg-12">
+               <div class="SubFooter">
+                  <p>Copyright © 2022. All Rights Reserved. TRADITIONAL™ Traditional Company LLC</p>
+                  <ul class="social-icons">
+                     <li><a href="javascript:avoid(0)"><img src="icon/facebook.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/twitter.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/linkedin.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/instagram.svg" alt=""></a></li>
+                  </ul>
+               </div>
+            </div>
+         </div>
+      </div>
+   </footer>
+
+   <!-- Modal -->
+   <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+      aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content">
+            <div class="modal-header">
+               <h5 class="modal-title" id="staticBackdropLabel">Result</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+               <img src="img/pop-up.png" class="w-100" alt="">
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <button id="scrollTotop">
+      <div class="ScrollArrow">
+         <i class="material-icons">keyboard_double_arrow_up</i>
+      </div>
+   </button>
+
+   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+   <script src="js/header.js"></script>
+   <script src="js/slider.js"></script>
+   <script src="js/scrolltop.js"></script>
+   <script src="js/jquery.nice-select.min.js"></script>
+   <script src="js/range-slider.js"></script>
+   <script src="js/custom.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="theme-color" content="#05a5ca">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+   <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+
+   <title>Sugarrush</title>
+   <link rel="shortcut icon" href="img/shortlogo.png" type="image/png" />
+   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css" />
+
+   <!-- Animation  -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+   <!-- Animation  -->
+
+   <link rel="stylesheet" href="css/nice-select.css">
+   <link rel="stylesheet" href="css/range-slider.css">
+   <link rel="stylesheet" href="css/global.css">
+   <link rel="stylesheet" href="css/style.css">
+   <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+   <header>
+      <nav class="navbar navbar-expand-lg">
+         <div class="container">
+            <div class="header-container">
+               <a class="navbar-brand animate__animated animate__rubberBand animate__delay-1s" href="index.html">
+                  <img src="img/shortlogo.png" alt="">
+               </a>
+               <div class="navigation">
+                  <div class="main-menu">
+                     <div class="toggle-nav" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+                        <span class="togglemenu">
+                           <span class="bar"></span>
+                           <span class="bar"></span>
+                           <span class="bar"></span>
+                        </span>
+                     </div>
+                     <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                        <div class="device-brandLogo d-block d-lg-none">
+                           <a class="" href="index.html">
+                              <img src="img/shortlogo.png" alt="">
+                           </a>
+                        </div>
+                        <ul class="navbar-nav ms-auto">
+                           <li class="nav-item">
+                              <a class="nav-link" href="authenticate.html">Authenticate</a>
+                           </li>
+                           <li class="nav-item dropdown ProductDropdown-menuList">
+                              <a class="nav-link dropdown-toggle" id="productMenu" href="javascript:void(0)"
+                                 data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                                 Product
+                              </a>
+                              <ul class="dropdown-menu dropdownList" aria-labelledby="ProductList">
+                                 <li class="title">Products</li>
+                                 <li>
+                                    <a class="dropdown-item" href="designer-diamonds-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/jar-new.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Designer Diamonds</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+                                 <li>
+                                    <a class="dropdown-item" href="secret-sauce-cartridges-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/product-img2.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Secret sauce cartridges</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+                                 <li>
+                                    <a class="dropdown-item" href="diamond-infused-details.html">
+                                       <div class="product-thumbnail">
+                                          <img src="img/gummies.png" alt="">
+                                       </div>
+                                       <div class="product-name">
+                                          <h6>Diamonds infused gummies</h6>
+                                          <p>Highest quality diamonds</p>
+                                       </div>
+                                    </a>
+                                 </li>
+                                 <li><a class="dropdown-item justify-content-center" href="shop.html">All products</a>
+                                 </li>
+                              </ul>
+                           </li>
+                           <li class="nav-item">
+                              <a class="nav-link" href="shop.html">Shop</a>
+                           </li>
+                           <li class="nav-item">
+                              <a class="nav-link" href="opportunity.html">Opportunity</a>
+                           </li>
+                           <li class="nav-item">
+                              <a class="nav-link" href="coming-soon.html">Culture</a>
+                           </li>
+                        </ul>
+                     </div>
+                     <div class="nav-overlay" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar"></div>
+                  </div>
+                  <div class="icon-menu">
+                     <ul>
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/search.svg" alt="">
+                           </a>
+                        </li>
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/cart.svg" alt="">
+                           </a>
+                        </li>
+                        <li class="d-none d-md-block">
+                           <a class="" href="javascript:void(0)">
+                              <img src="icon/user.svg" alt="">
+                           </a>
+                        </li>
+                        <li>
+                           <a class="ThemeBtn" href="coming-soon.html">
+                              <span>Exclusive</span>
+                           </a>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </nav>
+   </header>
+
+   <section class="fit-header"></section>
+
+   <section class="custom-space overflow-hidden">
+      <div class="container">
+         <div class="row shop-top-bar-area align-items-center mb-5">
+            <div class="col-lg-3 col-md-3 col-6">
+               <div class="custom-select">
+                  <select class="flat-select">
+                     <option data-display="Trending">Trending</option>
+                     <option value="1">Featured</option>
+                     <option value="2">Best Selling</option>
+                     <option value="5">Price: low to high</option>
+                     <option value="6">Price: high to low</option>
+                  </select>
+               </div>
+            </div>
+
+            <div class="col-lg-6 col-md-6 col-12">
+               <div class="select-price-range">
+                  <h4 class="title">Pricing</h4>
+                  <div class="select-price-range-slider">
+                     <div class="slider-range noUi-target noUi-ltr noUi-horizontal noUi-background" id="slider-range">
+                     </div>
+                     <div class="slider-labels">
+                        <span id="slider-range-value1">$1,000</span>
+                        <span>-</span>
+                        <span id="slider-range-value2">$4,400</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <div class="col-lg-3 col-md-3 col-6">
+               <div class="select-on-sale">
+                  <h5>On Sale :</h5>
+                  <div class="custom-select">
+                     <select class="flat-select option-right">
+                        <option selected="">Yes</option>
+                        <option value="1">No</option>
+                     </select>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div class="row gy-4 mb-5">
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="1000">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/candy.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Candy</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="1200">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/candy-jar.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Candy jar</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="1400">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/gummy-bear.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Gummy bear</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="1600">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/halloween-candy.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Halloween</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="1800">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/sweets.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Sweets</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+            <div class="col-6 col-md-4 col-lg-2" data-aos="slide-up" data-aos-duration="2000">
+               <!--== Start Product Categories Item ==-->
+               <a class="product-two-category-item" href="shop.html">
+                  <img class="product-two-category-thumb" src="icon/candy-canes.png" width="80" height="80"
+                     alt="Image-HasTech">
+                  <h4 class="product-two-category-title">Candy canes</h4>
+               </a>
+               <!--== End Product Categories Item ==-->
+            </div>
+         </div>
+      
+         <div class="row gy-4">
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/candy-canes.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+
+                  <span class="badges">New</span>
+
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Candy canes</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/candy-jar.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+                  <span class="badges">New</span>
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Candy jar</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/candy.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+                  <span class="badges">New</span>
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Candy</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/sweets.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+                  <span class="badges">New</span>
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Sweets</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/gummy-bear.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+                  <span class="badges">New</span>
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Gummy bear</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-12" data-aos="flip-right" data-aos-duration="2000"
+               data-aos-easing="ease-out-cubic">
+               <!--== Start Product Item ==-->
+               <div class="product-item">
+                  <a class="product-thumbnail" href="product-detail.html">
+                     <img src="icon/halloween-candy.png" width="300" height="286" alt="Image-HasTech">
+                  </a>
+                  <span class="badges">New</span>
+                  <div class="product-info">
+                     <h4 class="title"><a href="product-detail.html">Halloween candy</a></h4>
+                     <h5 class="price">$650.00 <span class="price-old">$650.00</span></h5>
+                  </div>
+                  <button type="button" class="info-btn-Cart">
+                     <i class="fa-solid fa-cart-shopping"></i>
+                  </button>
+               </div>
+               <!--== End prPduct Item ==-->
+            </div>
+         </div>
+      </div>
+   </section>
+
+   <section class="custom-space bg-lightgray">
+      <div class="container">
+         <div class="row">
+            <div class="col-lg-12">
+               <div class="headTitle headTitle-center">
+                  <h2>You may also like</h2>
+                  <div class="title-divider">
+                     <span></span>
+                     <span></span>
+                     <span></span>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-lg-12">
+               <div class="secretSauce-product">
+                  <div class="swiper threeProduct">
+                     <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                           <a href="diamond-infused-details.html" class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="img/gummies.png" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Diamonds infused gummies</h4>
+                                 <p>Highest quality diamonds</p>
+                              </div>
+                           </a>
+                        </div>
+
+                        <div class="swiper-slide">
+                           <a href="secret-sauce-cartridges-details.html" class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="img/product-img2.png" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Secret sauce cartridges</h4>
+                                 <p>Highest quality diamonds</p>
+                              </div>
+                           </a>
+                        </div>
+
+                        <div class="swiper-slide">
+                           <a href="designer-diamonds-details.html" class="product-box" data-aos="flip-right" data-aos-duration="2000"
+                              data-aos-easing="ease-out-cubic">
+                              <div class="product-thumb">
+                                 <img src="img/jar-new.png" alt="">
+                              </div>
+
+                              <div class="product-details">
+                                 <h4>Designer Diamonds</h4>
+                                 <p>Highest quality diamonds</p>
+                              </div>
+                           </a>
+                        </div>
+                     </div>
+                     <div class="swiper-button-next"></div>
+                     <div class="swiper-button-prev"></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </section>
+
+   <footer>
+      <div class="container">
+         <div class="row gy-3">
+            <div class="col-lg-4 col-md-6 col-12">
+               <div class="Footer-AboutBrands">
+                  <a class="navbar-brand" href="index.html" data-aos="zoom-in" data-aos-duration="2000">
+                     <img src="img/suger-rushLogo.png" alt="">
+                  </a>
+                  <p data-aos="fade-left" data-aos-duration="2000">Life is sweet when you <b>Taste The Terps</b> with Sugar Rush</p>
+               </div>
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Quick Links</h5>
+                  <ul>
+                     <li><a href="index.html">Home</a></li>
+                     <li><a href="coming-soon.html">About Us</a></li>
+                     <li><a href="coming-soon.html">Strains</a></li>
+                     <li><a href="coming-soon.html">Privacy Policy</a></li>
+                     <li><a href="coming-soon.html">Contact Us</a></li>
+                  </ul>
+               </div>
+            </div>
+            <div class="col-lg-2 col-md-3 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Products</h5>
+                  <ul>
+                     <li><a href="coming-soon.html">View Strains</a></li>
+                     <li><a href="coming-soon.html">Gummies</a></li>
+                     <li><a href="coming-soon.html">Milks</a></li>
+                     <li><a href="coming-soon.html">Milk Censored</a></li>
+                     <li><a href="coming-soon.html">Gelato</a></li>
+                  </ul>
+               </div>
+            </div>
+            <div class="col-lg-4 col-md-12 col-12">
+               <div class="Footer-Col" data-aos="fade-left" data-aos-duration="2000">
+                  <h5>Location</h5>
+                  <p>Newport Beach, Orange County CA</p>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div class="container">
+         <div class="row">
+            <div class="col-lg-12">
+               <div class="SubFooter">
+                  <p>Copyright © 2022. All Rights Reserved. TRADITIONAL™ Traditional Company LLC</p>
+                  <ul class="social-icons">
+                     <li><a href="javascript:avoid(0)"><img src="icon/facebook.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/twitter.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/linkedin.svg" alt=""></a></li>
+                     <li><a href="javascript:avoid(0)"><img src="icon/instagram.svg" alt=""></a></li>
+                  </ul>
+               </div>
+            </div>
+         </div>
+      </div>
+   </footer>
+
+   <button id="scrollTotop">
+      <div class="ScrollArrow">
+         <i class="material-icons">keyboard_double_arrow_up</i>
+      </div>
+   </button>
+
+   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+   <script src="js/header.js"></script>
+   <script src="js/slider.js"></script>
+   <script src="js/scrolltop.js"></script>
+   <script src="js/jquery.nice-select.min.js"></script>
+   <script src="js/range-slider.js"></script>
+   <script src="js/custom.js"></script>
+</body>
+
+</html>

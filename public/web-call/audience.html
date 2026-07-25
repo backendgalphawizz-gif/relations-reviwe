@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Audience View</h2>
+
+<div id="remote-player" style="width: 500px; height: 400px;"></div>
+
+<script src="https://relationship-revive.com/public/web-call/AgoraRTC_N-4.24.0.js"></script>
+<script>
+const APP_ID = "68e78b7633604458a5bf8b312a5b59cc";
+const TOKEN = "00668e78b7633604458a5bf8b312a5b59ccIAB1VD6ThwSbtO+NOkhuYpkMUKbpMF5UVzfZu/mmxoU23H9NLIoAAAAAIgAvOAAAYqQiaQQAAQA6VSFpAwA6VSFpAgA6VSFpBAA6VSFp";  // Use temp token or create dynamic token
+const CHANNEL = "live-demo";
+
+// Create Agora client (LIVE MODE)
+const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+
+// Audience role
+client.setClientRole("audience");
+
+// Join the channel
+client.join(APP_ID, CHANNEL, TOKEN, null).then(() => {
+    console.log("Audience joined");
+});
+
+// When a host publishes video
+client.on("user-published", async (user, mediaType) => {
+    await client.subscribe(user, mediaType);
+
+    if (mediaType === "video") {
+        user.videoTrack.play("remote-player");
+    }
+    if (mediaType === "audio") {
+        user.audioTrack.play();
+    }
+});
+
+client.on("user-unpublished", (user) => {
+    document.getElementById("remote-player").innerHTML = "";
+});
+</script>
+
+</body>
+</html>

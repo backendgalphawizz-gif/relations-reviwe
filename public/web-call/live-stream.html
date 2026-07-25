@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <div>
+            <button id="start-btn">Start Live</button>
+            <button id="stop-btn">Stop Live</button>
+        </div>
+
+        <div id="local-stream" style="width: 400px; height: 300px;"></div>
+        <div id="remote-streams"></div>
+        <!-- <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script> -->
+        <script src="https://relationship-revive.com/public/web-call/AgoraRTC_N-4.24.0.js"></script>
+        <script>
+            const APP_ID = "68e78b7633604458a5bf8b312a5b59cc";
+            const TOKEN = "00668e78b7633604458a5bf8b312a5b59ccIAB1VD6ThwSbtO+NOkhuYpkMUKbpMF5UVzfZu/mmxoU23H9NLIoAAAAAIgAvOAAAYqQiaQQAAQA6VSFpAwA6VSFpAgA6VSFpBAA6VSFp";  // Use temp token or create dynamic token
+            const CHANNEL = "live-demo";
+        
+            // User roles
+            let isHost = true;   // Host publishes, Audience only subscribes
+        
+            const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+        
+            client.setClientRole(isHost ? "host" : "audience");
+        
+            let localTracks = {
+                videoTrack: null,
+                audioTrack: null
+            };
+        
+            // -------- Host Start Live --------
+            document.getElementById("start-btn").onclick = async () => {
+                await client.join(APP_ID, CHANNEL, TOKEN, null);
+        
+                if (isHost) {
+                    localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack();
+        
+                    localTracks.videoTrack.play("local-stream");
+        
+                    await client.publish(Object.values(localTracks));
+                    console.log("Live Started");
+                }
+            };
+        
+            // -------- Stop Live --------
+            document.getElementById("stop-btn").onclick = async () => {
+                if (isHost) {
+                    localTracks.videoTrack.close();
+                    localTracks.audioTrack.close();
+                }
+                await client.leave();
+                console.log("Live Ended");
+            };
+        
+            // -------- Audience View Remote Streams --------
+            client.on("user-published", async (user, mediaType) => {
+                await client.subscribe(user, mediaType);
+        
+                if (mediaType === "video") {
+                    const remoteContainer = document.createElement("div");
+                    remoteContainer.id = user.uid;
+                    remoteContainer.style.width = "400px";
+                    remoteContainer.style.height = "300px";
+                    document.getElementById("remote-streams").append(remoteContainer);
+        
+                    user.videoTrack.play(remoteContainer.id);
+                }
+        
+                if (mediaType === "audio") {
+                    user.audioTrack.play();
+                }
+            });
+        
+            client.on("user-unpublished", user => {
+                const el = document.getElementById(user.uid);
+                if (el) el.remove();
+            });
+        </script>
+    </body>
+</html>

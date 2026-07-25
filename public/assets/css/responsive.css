@@ -1,0 +1,380 @@
+@media(max-width:1367px){
+  .issueContainer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.depressionContainer {
+  display: flex
+;
+  align-items: start;
+  flex-wrap: wrap;
+}
+}
+
+
+
+
+@media (max-width: 991.98px) {
+  header {
+    transform: translateY(0) !important;
+    min-height: 70px;
+  }
+  header.hide-nav {
+    transform: translateY(0) !important;
+    -webkit-transform: translateY(0) !important;
+  }
+  header .navbar .header-container {
+    gap: 20px;
+  }
+  header .navbar .header-container .navbar-brand img {
+    width: 60px;
+  }
+  header .navbar .header-container .navigation .main-menu .toggle-nav {
+    position: absolute;
+    right: 0px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  header .navbar .header-container .navigation .main-menu .toggle-nav[aria-expanded=true] .togglemenu span:first-child {
+    transform: rotate(45deg);
+    top: 10px;
+  }
+  header .navbar .header-container .navigation .main-menu .toggle-nav[aria-expanded=true] .togglemenu span:nth-of-type(2) {
+    opacity: 0;
+  }
+  header .navbar .header-container .navigation .main-menu .toggle-nav[aria-expanded=true] .togglemenu span:nth-of-type(3) {
+    transform: rotate(135deg);
+    top: -10px;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse {
+    position: fixed;
+    background: var(--bg-dark);
+    width: 50%;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    transition: all 0.3s ease-in-out;
+    transform: translateX(-101%);
+    align-items: flex-start;
+    z-index: 99;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse:not(.show) {
+    display: block;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse.show {
+    transform: translateX(0%);
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse.show + .nav-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse .device-brandLogo a {
+    display: flex;
+    padding: 15px;
+    box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
+    align-items: center;
+    min-height: 90px;
+    margin-bottom: 10px;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse .device-brandLogo a img {
+    width: 75px;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse .navbar-nav {
+    gap: 10px;
+    height: calc(100vh - 100px);
+    overflow: auto;
+    padding-bottom: 15px;
+  }
+  header .navbar .header-container .navigation .main-menu .navbar-collapse .navbar-nav .nav-item {
+    padding: 0 15px;
+  }
+  header .navbar .header-container .navigation .icon-menu {
+    padding-right: 50px;
+  }
+  .brandLogo img {
+    width: 250px;
+  }
+  .concentratesImgBox {
+    padding: 0;
+  }
+  .designerDiamond-container {
+    padding: 100px 0 50px;
+  }
+  .concentrates-description {
+    padding-left: 20px;
+  }
+  .diamondInfused-container {
+    padding: 100px 0 40px;
+  }
+  .MainImageAni {
+    max-width: 250px;
+  }
+  footer {
+    padding-top: 40px;
+  }
+  footer .Footer-AboutBrands {
+    padding-right: 0;
+  }
+  .SubFooter {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .product-box {
+    padding: 15px 10px;
+  }
+  .product-box .product-details h4 {
+    font-size: 14px;
+  }
+  .product-box .product-details p {
+    margin-bottom: 15px;
+    font-size: 13px;
+  }
+  .page-banner {
+    padding-top: 70px;
+  }
+  .OpportunityForm {
+    padding: 0;
+  }
+  .authenticate-container {
+    padding: 60px 0 130px;
+  }
+  .authenticate-container .MainAuths .headTitle h2 {
+    font-size: 26px;
+  }
+}
+@media (max-width: 991.98px) and (max-width: 767.98px) {
+  .authenticate-container .MainAuths .headTitle h2 {
+    font-size: 28px;
+  }
+}
+@media (max-width: 991.98px) and (max-width: 320px) {
+  .authenticate-container .MainAuths .headTitle h2 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 991.98px) {
+  .ProductImageDetails {
+    text-align: center;
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+  }
+  .ProductImageDetails .ProDetails .title-divider {
+    justify-content: center;
+  }
+  .ProductImageDetails .OG-thumbLogo {
+    justify-content: center;
+  }
+}
+@media (max-width: 767.98px) {
+  header .navbar .header-container .navigation .main-menu .navbar-collapse {
+    width: 80%;
+  }
+  .relationCardDiv{
+    justify-content: center;
+  }
+  .relationshipSection h2 {
+    font-size: 30px;
+}
+  .relationCard{
+    width: 100%
+  }
+  .container {
+    padding: 0 15px;
+  }
+  .concentrates-description .headTitle {
+    text-align: center;
+  }
+  .concentrates-description .headTitle .title-divider {
+    justify-content: center;
+  }
+  .contact-banner .contact-description .goContact {
+    padding: 30px;
+  }
+  .designerDiamond-container {
+    padding: 110px 0 40px;
+  }
+  .concentrates-description {
+    padding-left: 0;
+  }
+  .diamondInfused-container {
+    padding: 40px 0 100px;
+  }
+  .diamondInfused-description {
+    margin-bottom: 150px;
+    text-align: center;
+  }
+  .diamondInfused-description .headTitle .title-divider {
+    justify-content: center;
+  }
+  .product-box {
+    padding: 25px 15px;
+  }
+
+  /* .issuePointDiv li span {
+    width: 90px;
+  } */
+
+  .issueImgDiv {
+    margin-top: 50px;
+  }
+
+  .importantRole h2 {
+    font-size: 30px;
+  }
+  
+  .depressionHead h2 {
+    font-size: 30px;
+  }
+
+  .overlayImportant {
+    justify-content: center;
+  }
+  .product-box .product-details h4 {
+    font-size: 18px;
+  }
+  .product-box .product-details p {
+    font-size: 16px;
+  }
+  footer .Footer-AboutBrands .navbar-brand img {
+    width: 150px;
+  }
+  footer .Footer-Col {
+    border-top: 1px solid #303030;
+    padding-top: 15px;
+  }
+  .page-banner {
+    height: 230px;
+  }
+  .authenticate-container {
+    padding: 30px 0 130px;
+  }
+  .authenticate-container .MainAuths {
+    text-align: center;
+  }
+  .authenticate-container .MainAuths .title-divider {
+    justify-content: center;
+  }
+  .authenticate-container .MainAuths .social-icons {
+    margin: auto;
+  }
+  .shop-top-bar-area .col-12 {
+    order: 3;
+  }
+  .shop-top-bar-area .select-price-range {
+    justify-content: space-between;
+    border: 0;
+    margin-top: 20px;
+  }
+  .ProVarint .ProVarint-sec li {
+    position: relative;
+    text-align: center;
+    width: 29%;
+    height: 100px;
+  }
+  .ProVarint .ProVarint-sec li img {
+    width: 100%;
+    min-width: 100%;
+    height: 100%;
+    padding: 15px;
+  }
+  .ProVarint .ProVarint-sec .Title {
+    width: 100%;
+    height: auto;
+  }
+  .ProVarint .ProVarint-sec .Title span {
+    -ms-writing-mode: unset;
+        writing-mode: unset;
+    font-size: 24px;
+  }
+  .cs-wrapper {
+    text-align: center;
+  }
+  .cs-wrapper h1 {
+    text-transform: uppercase;
+    font-size: 30px;
+  }
+  .DI-effect-container {
+    padding: 80px 0 20px;
+  }
+  .secretCartridges-container .secretCartridges-description {
+    text-align: center;
+  }
+  .secretCartridges-container .secretCartridges-description .title-divider {
+    justify-content: center;
+  }
+
+  .banner-text {
+    text-align: center;
+}
+
+.DD-effect li.center-main {
+  width: 200px !important;
+}
+}/*# sourceMappingURL=responsive.css.map */
+
+@media screen and (max-width: 450px) {
+  .bioContainer{
+    flex-direction: column-reverse;
+    padding: 20px;
+  }
+  .serviceCard {
+    width: calc(50% - 10px);
+
+}
+  .missionContainer{
+    height: auto;
+    padding: 20px;
+  }
+  .mssionImpPara {
+    width: fit-content;
+  }
+  .impactContainer{
+  padding: 20px;
+  flex-direction: column-reverse;
+}
+.bioHead h4 {
+  font-size: 30px;
+  text-align: center;
+  margin-top: 10px;
+}
+.headTitle p {
+  font-size: 15px;
+  text-align: left;
+}
+.awardImg {
+  gap: 19px;
+  flex-direction: column;
+  align-items: center;
+}
+.podcastDiv h3 {
+  font-size: 25px;
+}
+.podcastDiv div {
+  gap: 15px;
+}
+.issueHeadDiv h2 {
+  font-size: 25px;
+}
+.importantRole h2 {
+  font-size: 14px;
+}
+.importantRole {
+  height: 315px;
+}
+.serviceCard {
+  width: 100%;
+
+}
+.serviceCardSection h4 {
+  font-size: 16px;
+}
+.serviceCardSection h5 {
+  margin-top: 20px;
+  font-size: 14px;
+}
+}

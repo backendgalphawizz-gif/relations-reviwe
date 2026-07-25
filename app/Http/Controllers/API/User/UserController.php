@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminModel\DefaultProfile;
 use App\Models\UserModel\User;
 use App\Models\UserModel\UserDeviceDetail;
+use App\Models\UserModel\UserLoginHistory;
 use App\Models\UserModel\UserRole;
 use App\Models\UserModel\UserWallet;
+use App\Services\UserAuthSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -40,11 +43,62 @@ class UserController extends Controller
                     'forgotPassword',
                     'loginAppUser',
                     'sendOtp',
+                    'verifyOtp',
                     'sendAdvisorEnquiry',
                     'sendAdsEnquiry',
                 ],
             ]
         );
+    }
+
+    /**
+     * Cache key for login/signup OTP by mobile number.
+     */
+    protected function otpCacheKey(string $contactNo): string
+    {
+        return 'user_login_otp_' . $contactNo;
+    }
+
+    /**
+     * Store OTP for 5 minutes.
+     */
+    protected function storeOtp(string $contactNo, string $otp): void
+    {
+        Cache::put($this->otpCacheKey($contactNo), [
+            'otp' => (string) $otp,
+            'created_at' => Carbon::now()->toDateTimeString(),
+        ], now()->addMinutes(5));
+    }
+
+    /**
+     * Validate OTP (must be used within 5 minutes). Returns error response array or null on success.
+     */
+    protected function validateStoredOtp(string $contactNo, $otp): ?array
+    {
+        $cached = Cache::get($this->otpCacheKey($contactNo));
+
+        if (!$cached || !isset($cached['otp'])) {
+            return [
+                'success' => false,
+                'message' => 'OTP expired or not found. Please request a new OTP.',
+                'status' => 400,
+            ];
+        }
+
+        if ((string) $cached['otp'] !== (string) $otp) {
+            return [
+                'success' => false,
+                'message' => 'Invalid OTP.',
+                'status' => 400,
+            ];
+        }
+
+        return null;
+    }
+
+    protected function clearOtp(string $contactNo): void
+    {
+        Cache::forget($this->otpCacheKey($contactNo));
     }
 
     //Add User
@@ -185,6 +239,9 @@ class UserController extends Controller
                 $otpstatus = false;
             }
 
+            // Store OTP server-side; auto-expires after 5 minutes
+            $this->storeOtp((string) $req['contactNo'], (string) $otp);
+
             if($otpstatus) {
                 /**
                  * @var SMS Gateway
@@ -195,7 +252,7 @@ class UserController extends Controller
                 $smsSender = env('SMS_SENDER', 'RLTREW');
                 $smsDltTeId = env('SMS_DLT_TE_ID');
                 curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%2010%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
+                    CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%205%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_ENCODING => '',
                     CURLOPT_MAXREDIRS => 10,
@@ -214,9 +271,44 @@ class UserController extends Controller
                 'status' => 200,
                 'message' => 'Otp send successfully',
                 'otp' => $otp,
+                'expires_in' => 300,
             ], 200);
         } catch (\Exception$e) {
             DB::rollback();
+            return response()->json([
+                'error' => false,
+                'message' => $e->getMessage(),
+                'status' => 500,
+            ], 500);
+        }
+    }
+
+    public function verifyOtp(Request $req)
+    {
+        try {
+            $validator = Validator::make($req->all(), [
+                'contactNo' => 'required',
+                'otp' => 'required',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => $validator->errors(),
+                    'status' => 400,
+                ], 400);
+            }
+
+            $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
+            if ($otpError) {
+                return response()->json($otpError, 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'status' => 200,
+                'message' => 'OTP verified successfully',
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => false,
                 'message' => $e->getMessage(),
@@ -387,11 +479,15 @@ class UserController extends Controller
                 ], 500);
             }
             if ($token) {
-                $data = array(
-                    'token' => $token,
-                    'expirationDate' => Carbon::now()->addMonth(),
-                );
-                DB::table('users')->where('email', '=', $req->email)->update($data);
+                $user = User::where('email', $req->email)->first();
+                if ($user) {
+                    UserAuthSessionService::startSession(
+                        $user,
+                        $token,
+                        $req,
+                        is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null
+                    );
+                }
             }
             //Json response
             return response()->json([
@@ -523,8 +619,9 @@ class UserController extends Controller
     {
         // die("Hello");
         try {
-            $validator = Validator::make($req->only('contactNo'), [
+            $validator = Validator::make($req->only('contactNo', 'otp'), [
                 'contactNo' => 'required',
+                'otp' => 'required',
             ]);
 
             if ($validator->fails()) {
@@ -534,10 +631,19 @@ class UserController extends Controller
                 ], 400);
             }
 
+            $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
+            if ($otpError) {
+                return response()->json($otpError, 400);
+            }
+
             $user = User::where('contactNo', $req->contactNo)->first();
 
             if (!$user) {
-                return $this->addAppUser($req, collect());
+                $response = $this->addAppUser($req, collect());
+                if ($response->getStatusCode() === 200) {
+                    $this->clearOtp((string) $req->contactNo);
+                }
+                return $response;
             }
 
             $hasCustomerRole = DB::table('user_roles')
@@ -554,41 +660,10 @@ class UserController extends Controller
 
             $token = JWTAuth::fromUser($user);
 
-            if ($req->userDeviceDetails) {
-                $appId = $req->userDeviceDetails['appId'];
-                $userDeviceDetail = DB::table('user_device_details')
-                    ->join('users', 'users.id', '=', 'user_device_details.userId')
-                    ->where('users.contactNo', '=', $req->contactNo)
-                    ->where('user_device_details.appId', '=', $appId)
-                    ->select('user_device_details.*')
-                    ->get();
+            $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
+            UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
 
-                if ($userDeviceDetail->count() == 0) {
-                    UserDeviceDetail::create([
-                        'userId' => $user->id,
-                        'appId' => $req->userDeviceDetails['appId'],
-                        'deviceId' => $req->userDeviceDetails['deviceId'],
-                        'fcmToken' => $req->userDeviceDetails['fcmToken'],
-                        'deviceLocation' => $req->userDeviceDetails['deviceLocation'] ?? '',
-                        'deviceManufacturer' => $req->userDeviceDetails['deviceManufacturer'],
-                        'deviceModel' => $req->userDeviceDetails['deviceModel'],
-                        'appVersion' => $req->userDeviceDetails['appVersion'],
-                    ]);
-                } else {
-                    $userDeviceDetail = UserDeviceDetail::find($userDeviceDetail[0]->id);
-                    if ($userDeviceDetail) {
-                        $userDeviceDetail->appId = $req->userDeviceDetails['appId'];
-                        $userDeviceDetail->deviceId = $req->userDeviceDetails['deviceId'];
-                        $userDeviceDetail->fcmToken = $req->userDeviceDetails['fcmToken'];
-                        $userDeviceDetail->deviceLocation = $req->userDeviceDetails['deviceLocation'] ?? '';
-                        $userDeviceDetail->deviceManufacturer = $req->userDeviceDetails['deviceManufacturer'];
-                        $userDeviceDetail->deviceModel = $req->userDeviceDetails['deviceModel'];
-                        $userDeviceDetail->appVersion = $req->userDeviceDetails['appVersion'];
-                        $userDeviceDetail->updated_at = Carbon::now()->timestamp;
-                        $userDeviceDetail->update();
-                    }
-                }
-            }
+            $this->clearOtp((string) $req->contactNo);
 
             $id = collect([(object) ['id' => $user->id]]);
 
@@ -895,18 +970,6 @@ class UserController extends Controller
                 'userId' => $user->id,
                 'roleId' => 3,
             ]);
-            if ($req->userDeviceDetails && $req->userDeviceDetails['fcmToken']) {
-                UserDeviceDetail::create([
-                    'userId' => $user->id,
-                    'appId' => 1,
-                    'deviceId' => $req->userDeviceDetails['deviceId'],
-                    'fcmToken' => $req->userDeviceDetails['fcmToken'],
-                    'deviceLocation' => $req->userDeviceDetails['deviceLocation'],
-                    'deviceManufacturer' => $req->userDeviceDetails['deviceManufacturer'],
-                    'deviceModel' => $req->userDeviceDetails['deviceModel'],
-                    'appVersion' => $req->userDeviceDetails['appVersion'],
-                ]);
-            }
             //Create token
             try {
                 $token = JWTAuth::fromUser($user);
@@ -924,6 +987,12 @@ class UserController extends Controller
                     'message' => 'Could not create token.',
                 ], 500);
             }
+
+            $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
+            if ($deviceDetails && empty($deviceDetails['appId'])) {
+                $deviceDetails['appId'] = 1;
+            }
+            UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
 
             $userWallet = UserWallet::query()
                 ->where('userId', '=', $user->id)
@@ -959,12 +1028,63 @@ class UserController extends Controller
             if (!Auth::guard('api')->user()) {
                 return response()->json(['error' => 'Unauthorized', 'status' => 401], 401);
             }
+
+            $user = Auth::guard('api')->user();
+            $deviceId = $req->input('deviceId')
+                ?? (is_array($req->userDeviceDetails) ? ($req->userDeviceDetails['deviceId'] ?? null) : null);
+
+            try {
+                JWTAuth::invalidate(JWTAuth::getToken());
+            } catch (\Throwable $e) {
+                // Token may already be invalid; still clear server session
+            }
+
+            UserAuthSessionService::endSession($user, $deviceId);
+
+            Auth::guard('api')->logout();
+
             return response()->json([
-                "message" => "Logout User Successfully",
-                "status" => 200,
-                "recordList" => [],
+                'success' => true,
+                'message' => 'Logout User Successfully',
+                'status' => 200,
+                'recordList' => [],
             ], 200);
         } catch (\Exception$e) {
+            return response()->json([
+                'error' => false,
+                'message' => $e->getMessage(),
+                'status' => 500,
+            ], 500);
+        }
+    }
+
+    public function getLoginHistory(Request $req)
+    {
+        try {
+            if (!Auth::guard('api')->user()) {
+                return response()->json(['error' => 'Unauthorized', 'status' => 401], 401);
+            }
+
+            $userId = Auth::guard('api')->user()->id;
+            $limit = (int) ($req->limit ?? 20);
+            $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+            $history = UserLoginHistory::where('userId', $userId)
+                ->orderByDesc('login_at')
+                ->limit($limit)
+                ->get();
+
+            $lastLogin = UserLoginHistory::where('userId', $userId)
+                ->orderByDesc('login_at')
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'status' => 200,
+                'lastLogin' => $lastLogin,
+                'recordList' => $history,
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => false,
                 'message' => $e->getMessage(),

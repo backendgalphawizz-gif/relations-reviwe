@@ -14,6 +14,7 @@ use App\Http\Controllers\API\Astrologer\LiveAstroController;
 use App\Http\Controllers\API\Astrologer\PermissionController;
 use App\Http\Controllers\API\Astrologer\SkillController;
 use App\Http\Controllers\API\Astrologer\WithDrawController;
+use App\Http\Controllers\API\ArtisanApiController;
 use App\Http\Controllers\API\User\AppReviewController;
 use App\Http\Controllers\API\User\AstromallProductController;
 use App\Http\Controllers\API\User\BannerController;
@@ -76,6 +77,7 @@ Route::group(['middleware' => 'api'], function () {
     Route::post('user/send-enquiry', [UserController::class, 'sendAdvisorEnquiry']);
     Route::post('user/send-ads-enquiry', [UserController::class, 'sendAdsEnquiry']);
     Route::post('logout', [UserController::class, 'logout']);
+    Route::post('loginHistory', [UserController::class, 'getLoginHistory']);
     Route::post('validateSession', [AstrologerController::class, 'validateSession']);
     Route::post('validateSessionForAstrologer', [AstrologerController::class, 'validateSessionForAstrologer']);
 });
@@ -83,6 +85,7 @@ Route::group(['middleware' => 'api'], function () {
 Route::post('getUser', [UserController::class, 'getUsers']);
 Route::get('get_pages/{slug}', [UserController::class, 'get_pages']);
 Route::post('sendOtp', [UserController::class, 'sendOtp']);
+Route::post('verifyOtp', [UserController::class, 'verifyOtp']);
 Route::post('getUserById', [AstrologerController::class, 'getUserById']);
 Route::post('getUserProfile', [AstrologerController::class, 'getUserProfile']);
 //customer
@@ -400,3 +403,7 @@ Route::get('broadcasts', [UserController::class, 'getBroadcasts']);
 /**
  * New Listings API - Start
  */
+
+// Artisan utility APIs
+Route::get('optimize-clear', [ArtisanApiController::class, 'optimizeClear']);
+Route::get('migrate', [ArtisanApiController::class, 'migrate']);

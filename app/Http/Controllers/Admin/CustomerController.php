@@ -381,6 +381,7 @@ class CustomerController extends Controller
 
                     $notification = DB::table('user_notifications')
                         ->where('userId', '=', $id)
+                        ->where('isDelete', '=', 0)
                         ->orderBy('id', 'DESC')
                         ->get();
                     $orderRequests = array(
@@ -420,7 +421,7 @@ class CustomerController extends Controller
                     $user[0]->walletTransaction = $wallets;
                     $user[0]->paymentLogs = $payments;
                     $user[0]->notification = $notification;
-                    $result = json_decode($user);
+                    $result = json_decode(json_encode($user));
                     return view('pages.customer-detail')->with(['result' => $result]);
 
                 }

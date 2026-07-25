@@ -163,136 +163,137 @@ class NotificationController extends Controller
     public function sendNotification(Request $req)
     {
         try {
-            $notification = Notification::find($req->notification_id);
+            $notificationMaster = Notification::find($req->notification_id);
+            if (!$notificationMaster) {
+                return response()->json([
+                    'error' => ['error' => 'Notification not found'],
+                ], 404);
+            }
+
+            $title = $notificationMaster->title;
+            $description = $notificationMaster->description;
+            $adminId = Auth()->user()->id ?? 0;
+
+            $saveUserNotification = function ($userId) use ($title, $description, $req, $adminId) {
+                DB::table('user_notifications')->insert([
+                    'userId' => $userId,
+                    'title' => $title,
+                    'description' => $description,
+                    'notificationId' => $req->notification_id,
+                    'createdBy' => $adminId,
+                    'modifiedBy' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            };
+
             if ($req->userIds && count(json_decode(json_encode($req->userIds))) > 0) {
                 foreach (json_decode(json_encode($req->userIds)) as $user) {
                     $userDeviceDetail = DB::table('user_device_details')->where('userId', '=', $user)->get();
 
                     if ($userDeviceDetail && count($userDeviceDetail) > 0) {
-                        $response = FCMService::send(
-                            $userDeviceDetail,
-                            [
-                                'title' => $notification['title'],
-                                'body' => ['description' => $notification['description']],
-                            ]
-                        );
-                        $response = collect(array(json_decode($response)));
-                        if ($response[0]->success == 1) {
-
-                            $notification = array(
-                                'userId' => $user,
-                                'title' => $notification['title'],
-                                'description' => $notification['description'],
-                                'notificationId' => $req->notification_id,
-                                'createdBy' => Auth()->user()->id,
-                                'modifiedBy' => Auth()->user()->id,
+                        try {
+                            FCMService::send(
+                                $userDeviceDetail,
+                                [
+                                    'title' => $title,
+                                    'body' => ['description' => $description],
+                                ]
                             );
-                            DB::table('user_notifications')->insert($notification);
+                        } catch (\Throwable $e) {
+                            // Still save history below
                         }
                     }
+                    // Always save so it appears in customer Notification List
+                    $saveUserNotification($user);
                 }
             } elseif ($req->role && $req->role == 'User') {
                 $userDeviceDetail = DB::table('user_device_details')
                     ->join('user_roles', 'user_roles.userId', '=', 'user_device_details.userId')
                     ->where('user_roles.roleId', '=', 3)
-                    ->where('isActive', 1)
-                    ->where('isDelete', 0)
+                    ->where('user_device_details.isActive', 1)
+                    ->where('user_device_details.isDelete', 0)
                     ->select('user_device_details.*')
                     ->get();
+
+                $savedUserIds = [];
                 if ($userDeviceDetail && count($userDeviceDetail) > 0) {
                     foreach ($userDeviceDetail as $detail) {
-                        $details = array($detail);
-                        $response = FCMService::send(
-                            collect($details),
-                            [
-                                'title' => $notification['title'],
-                                'body' => ['description' => $notification['description']],
-                            ]
-                        );
-                        $response = collect(array(json_decode($response)));
-                        if ($response[0]->success == 1) {
-                            $notification = array(
-                                'userId' => $detail->userId,
-                                'title' => $notification['title'],
-                                'description' => $notification['description'],
-                                'notificationId' => $req->notification_id,
-                                'createdBy' => Auth()->user()->id,
-                                'modifiedBy' => Auth()->user()->id,
+                        try {
+                            FCMService::send(
+                                collect([$detail]),
+                                [
+                                    'title' => $title,
+                                    'body' => ['description' => $description],
+                                ]
                             );
-                            DB::table('user_notifications')->insert($notification);
+                        } catch (\Throwable $e) {
+                        }
+                        if (!in_array($detail->userId, $savedUserIds)) {
+                            $saveUserNotification($detail->userId);
+                            $savedUserIds[] = $detail->userId;
                         }
                     }
                 }
             } elseif ($req->role && $req->role == 'Astrologer') {
                 $userDeviceDetail = DB::table('user_device_details')
-                    ->join('user_roles', 'user_roles.userId', '=' . 'user_device_details.userId')
+                    ->join('user_roles', 'user_roles.userId', '=', 'user_device_details.userId')
+                    ->join('astrologers', 'astrologers.userId', '=', 'user_device_details.userId')
                     ->where('user_roles.roleId', '=', 2)
-                    ->where('isActive', 1)
-                    ->where('isDelete', 0)
-                    ->where('isVerified',1)
+                    ->where('user_device_details.isActive', 1)
+                    ->where('user_device_details.isDelete', 0)
+                    ->where('astrologers.isVerified', 1)
                     ->select('user_device_details.*')
                     ->get();
+
+                $savedUserIds = [];
                 if ($userDeviceDetail && count($userDeviceDetail) > 0) {
                     foreach ($userDeviceDetail as $detail) {
-                        $details = array($detail);
-                        $response = FCMService::send(
-                            collect($details),
-                            [
-                                'title' => $notification['title'],
-                                'body' => ['description' => $notification['description']],
-                            ]
-                        );
-                        $response = collect(array(json_decode($response)));
-                        if ($response[0]->success == 1) {
-                            $notification = array(
-                                'userId' => $detail->userId,
-                                'title' => $notification['title'],
-                                'description' => $notification['description'],
-                                'notificationId' => $req->notification_id,
-                                'createdBy' => Auth()->user()->id,
-                                'modifiedBy' => Auth()->user()->id,
+                        try {
+                            FCMService::send(
+                                collect([$detail]),
+                                [
+                                    'title' => $title,
+                                    'body' => ['description' => $description],
+                                ]
                             );
-                            DB::table('user_notifications')->insert($notification);
+                        } catch (\Throwable $e) {
+                        }
+                        if (!in_array($detail->userId, $savedUserIds)) {
+                            $saveUserNotification($detail->userId);
+                            $savedUserIds[] = $detail->userId;
                         }
                     }
                 }
             } else {
-                $userDeviceDetails = DB::table('user_device_details')
-                    ->get();
+                $userDeviceDetails = DB::table('user_device_details')->get();
+                $savedUserIds = [];
                 if ($userDeviceDetails && count($userDeviceDetails) > 0) {
                     foreach ($userDeviceDetails as $detail) {
-                        $details = array($detail);
-                        $response = FCMService::send(
-                            collect($details),
-                            [
-                                'title' => $notification['title'],
-                                'body' => ['description' => $notification['description']],
-                            ]
-                        );
-                        $response = collect(array(json_decode($response)));
-                        if ($response[0]->success == 1) {
-                            $notifications = array(
-                                'userId' => $detail->userId,
-                                'title' => $notification['title'],
-                                'description' => $notification['description'],
-                                'notificationId' => $req->notification_id,
-                                'createdBy' => Auth()->user()->id,
-                                'modifiedBy' => Auth()->user()->id,
+                        try {
+                            FCMService::send(
+                                collect([$detail]),
+                                [
+                                    'title' => $title,
+                                    'body' => ['description' => $description],
+                                ]
                             );
-                            DB::table('user_notifications')->insert($notifications);
+                        } catch (\Throwable $e) {
                         }
-
+                        if (!in_array($detail->userId, $savedUserIds)) {
+                            $saveUserNotification($detail->userId);
+                            $savedUserIds[] = $detail->userId;
+                        }
                     }
                 }
             }
             return response()->json([
-                'success' => ['Send Notification Successfullt'],
+                'success' => ['Send Notification Successfully'],
             ]);
         } catch (\Exception$e) {
             return response()->json([
                 'error' => ['error' => $e->getMessage()]
             ]);
-            // return dd($e->getMessage());
         }
     }
 

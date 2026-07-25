@@ -18,5 +18,7 @@ class UserDeviceDetail extends Model
         'deviceManufacturer',
         'deviceModel',
         'appVersion',
+        'isActive',
+        'isDelete',
     ];
 }

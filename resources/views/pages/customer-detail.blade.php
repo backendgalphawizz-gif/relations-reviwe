@@ -481,13 +481,14 @@
                     <div id="example-tab-7" class="tab-pane leading-relaxed" role="tabpanel"
                         aria-labelledby="example-7-tab">
                         <div class="intro-y col-span-12 overflow-auto lg:overflow-visible">
-                            @if (count($userDetail->notification) > 0)
+                            @if (!empty($userDetail->notification) && count($userDetail->notification) > 0)
                                 <table class="table table-report mt-2" aria-label="">
                                     <thead>
                                         <tr>
                                             <th class="whitespace-nowrap">#</th>
                                             <th class="whitespace-nowrap" style="text-align: center">TITLE</th>
                                             <th class="whitespace-nowrap" style="text-align: center">DESCRIPTION</th>
+                                            <th class="whitespace-nowrap" style="text-align: center">DATE</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -504,6 +505,9 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-center">{{ $notification->description }}</td>
+                                                <td class="text-center">
+                                                    {{ !empty($notification->created_at) ? date('d M Y, h:i A', strtotime($notification->created_at)) : '--' }}
+                                                </td>
                                             </tr>
                                         @endforeach
 

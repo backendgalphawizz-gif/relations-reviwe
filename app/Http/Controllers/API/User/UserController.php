@@ -621,7 +621,7 @@ class UserController extends Controller
         try {
             $validator = Validator::make($req->only('contactNo', 'otp'), [
                 'contactNo' => 'required',
-                'otp' => 'required',
+                // 'otp' => 'required',
             ]);
 
             if ($validator->fails()) {

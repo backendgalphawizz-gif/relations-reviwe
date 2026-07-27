@@ -125,6 +125,7 @@ class UserController extends Controller
             //Validate the data
             $validator = Validator::make($data, [
                 'contactNo' => 'required|max:100|unique:users,contactNo',
+                'name' => 'required|max:100',
             ]);
 
             //Send failed response if request is not valid

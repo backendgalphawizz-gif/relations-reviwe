@@ -234,36 +234,65 @@ class UserController extends Controller
 
             $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
             $otpstatus = true;
-            if($req['contactNo'] == 9074305952 || $req['contactNo'] == 9998882220 || $req['contactNo'] == 7000541557){
-                $otp = 1234;
+            $contactNo = preg_replace('/\D+/', '', (string) $req['contactNo']);
+
+            if (in_array($contactNo, ['9074305952', '9998882220', '7000541557'], true)) {
+                $otp = '1234';
                 $otpstatus = false;
             }
 
             // Store OTP server-side; auto-expires after 5 minutes
-            $this->storeOtp((string) $req['contactNo'], (string) $otp);
+            $this->storeOtp($contactNo, (string) $otp);
 
-            if($otpstatus) {
-                /**
-                 * @var SMS Gateway
-                 */
-                $curl = curl_init();
-    
+            $smsResponse = null;
+            $smsJson = null;
+            $smsSent = false;
+
+            if ($otpstatus) {
                 $smsAuthKey = env('SMS_AUTH_KEY');
                 $smsSender = env('SMS_SENDER', 'RLTREW');
                 $smsDltTeId = env('SMS_DLT_TE_ID');
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%205%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
+
+                $message = $otp . ' is your Login one-time password for Relationship Revive.Please use it within 10 minutes. Keep it secure and private. - Relationship Revive';
+
+
+                $smsUrl = 'http://control.yourbulksms.com/api/sendhttp.php?' . http_build_query([
+                    'authkey' => $smsAuthKey,
+                    'mobiles' => $contactNo,
+                    'message' => $message,
+                    'sender' => $smsSender,
+                    'route' => 2,
+                    'country' => 0,
+                    'DLT_TE_ID' => $smsDltTeId,
+                ]);
+
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => $smsUrl,
                     CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
+                    CURLOPT_TIMEOUT => 30,
                     CURLOPT_FOLLOWLOCATION => true,
                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                     CURLOPT_CUSTOMREQUEST => 'GET',
-                ));
-                curl_exec($curl);
+                ]);
+                $smsResponse = curl_exec($curl);
+                $curlError = curl_error($curl);
+                $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
                 curl_close($curl);
 
+                $smsJson = json_decode((string) $smsResponse, true);
+                $smsSent = is_array($smsJson)
+                    && isset($smsJson['Status'])
+                    && strcasecmp((string) $smsJson['Status'], 'Success') === 0;
+
+                if (!$smsSent) {
+                    \Log::warning('SMS OTP failed', [
+                        'contactNo' => $contactNo,
+                        'httpCode' => $httpCode,
+                        'curlError' => $curlError,
+                        'response' => $smsResponse,
+                    ]);
+                }
             }
 
             return response()->json([

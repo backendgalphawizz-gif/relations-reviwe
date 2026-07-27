@@ -193,96 +193,6 @@ class UserController extends Controller
         }
     }
 
-    // public function sendOtp(Request $req)
-    // {
-    //     try {
-
-    //         $data = $req->only(
-    //             'contactNo',
-    //         );
-
-    //         // Validate the data
-    //         $validator = Validator::make($data, [
-    //             'contactNo' => 'required|max:100',
-    //         ]);
-
-    //         if($req->input('login') == 1) {
-    //             // Login OTP
-    //             // Check contactNo is registered or not
-
-    //             // Check if user is registered
-    //             // Add custom validator for login if the user does not exist
-    //             $validator->after(function ($validator) use ($req) {
-    //                 $userExists = User::where('contactNo', $req->input('contactNo'))->exists();
-    //                 if (!$userExists) {
-    //                     $validator->errors()->add('contactNo', 'This contact number is not registered.');
-    //                 }
-    //             });
-    //         } else {
-    //             // Sign Up OTP
-    //             // Validate the data
-    //             $validator = Validator::make($data, [
-    //                 'contactNo' => 'required|max:100|unique:users',
-    //             ]);
-    //         }
-
-    //         //Send failed response if request is not valid
-    //         if ($validator->fails()) {
-    //             DB::rollback();
-    //             return response()->json(['error' => $validator->messages(), 'status' => 400], 400);
-    //         }
-
-    //         $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
-    //         $otpstatus = true;
-    //         if($req['contactNo'] == 9074305952 || $req['contactNo'] == 9998882220 || $req['contactNo'] == 7000541557){
-    //             $otp = 1234;
-    //             $otpstatus = false;
-    //         }
-
-    //         // Store OTP server-side; auto-expires after 5 minutes
-    //         $this->storeOtp((string) $req['contactNo'], (string) $otp);
-
-    //         if($otpstatus) {
-    //             /**
-    //              * @var SMS Gateway
-    //              */
-    //             $curl = curl_init();
-    
-    //             $smsAuthKey = env('SMS_AUTH_KEY');
-    //             $smsSender = env('SMS_SENDER', 'RLTREW');
-    //             $smsDltTeId = env('SMS_DLT_TE_ID');
-    //             curl_setopt_array($curl, array(
-    //                 CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%205%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
-    //                 CURLOPT_RETURNTRANSFER => true,
-    //                 CURLOPT_ENCODING => '',
-    //                 CURLOPT_MAXREDIRS => 10,
-    //                 CURLOPT_TIMEOUT => 0,
-    //                 CURLOPT_FOLLOWLOCATION => true,
-    //                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    //                 CURLOPT_CUSTOMREQUEST => 'GET',
-    //             ));
-    //             curl_exec($curl);
-    //             curl_close($curl);
-
-    //         }
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'status' => 200,
-    //             'message' => 'Otp send successfully',
-    //             'otp' => $otp,
-    //             'expires_in' => 300,
-    //         ], 200);
-    //     } catch (\Exception$e) {
-    //         DB::rollback();
-    //         return response()->json([
-    //             'error' => false,
-    //             'message' => $e->getMessage(),
-    //             'status' => 500,
-    //         ], 500);
-    //     }
-    // }
-
     public function sendOtp(Request $req)
     {
         try {
@@ -329,12 +239,18 @@ class UserController extends Controller
                 $otpstatus = false;
             }
 
+            // Store OTP server-side; auto-expires after 5 minutes
+            $this->storeOtp((string) $req['contactNo'], (string) $otp);
+
             if($otpstatus) {
                 /**
                  * @var SMS Gateway
                  */
                 $curl = curl_init();
     
+                $smsAuthKey = env('SMS_AUTH_KEY');
+                $smsSender = env('SMS_SENDER', 'RLTREW');
+                $smsDltTeId = env('SMS_DLT_TE_ID');
                 curl_setopt_array($curl, array(
                     CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey=3939576f726c6433313263&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%2010%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender=RLTREW&route=2&country=0&DLT_TE_ID=1707174350721246613',
                     CURLOPT_RETURNTRANSFER => true,
@@ -355,6 +271,7 @@ class UserController extends Controller
                 'status' => 200,
                 'message' => 'Otp send successfully',
                 'otp' => $otp,
+                'expires_in' => 300,
             ], 200);
         } catch (\Exception$e) {
             DB::rollback();
@@ -698,75 +615,13 @@ class UserController extends Controller
     }
 
     //Login customer
-    // public function loginAppUser(Request $req)
-    // {
-    //     // die("Hello");
-    //     try {
-    //         $validator = Validator::make($req->only('contactNo', 'otp'), [
-    //             'contactNo' => 'required',
-    //             'otp' => 'required',
-    //         ]);
-
-    //         if ($validator->fails()) {
-    //             return response()->json([
-    //                 'error' => $validator->errors(),
-    //                 'status' => 400,
-    //             ], 400);
-    //         }
-
-    //         $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
-    //         if ($otpError) {
-    //             return response()->json($otpError, 400);
-    //         }
-
-    //         $user = User::where('contactNo', $req->contactNo)->first();
-
-    //         if (!$user) {
-    //             $response = $this->addAppUser($req, collect());
-    //             if ($response->getStatusCode() === 200) {
-    //                 $this->clearOtp((string) $req->contactNo);
-    //             }
-    //             return $response;
-    //         }
-
-    //         $hasCustomerRole = DB::table('user_roles')
-    //             ->where('userId', $user->id)
-    //             ->where('roleId', 3)
-    //             ->exists();
-
-    //         if (!$hasCustomerRole) {
-    //             UserRole::create([
-    //                 'userId' => $user->id,
-    //                 'roleId' => 3,
-    //             ]);
-    //         }
-
-    //         $token = JWTAuth::fromUser($user);
-
-    //         $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
-    //         UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
-
-    //         $this->clearOtp((string) $req->contactNo);
-
-    //         $id = collect([(object) ['id' => $user->id]]);
-
-    //         return $this->respondWithTokenApp($token, $id);
-    //     } catch (\Exception$e) {
-    //         return response()->json([
-    //             'error' => false,
-    //             'message' => $e->getMessage(),
-    //             'status' => 500,
-    //         ], 500);
-    //     }
-    // }
-
-    //Login customer
     public function loginAppUser(Request $req)
     {
         // die("Hello");
         try {
-            $validator = Validator::make($req->only('contactNo'), [
+            $validator = Validator::make($req->only('contactNo', 'otp'), [
                 'contactNo' => 'required',
+                'otp' => 'required',
             ]);
 
             if ($validator->fails()) {
@@ -776,10 +631,19 @@ class UserController extends Controller
                 ], 400);
             }
 
+            $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
+            if ($otpError) {
+                return response()->json($otpError, 400);
+            }
+
             $user = User::where('contactNo', $req->contactNo)->first();
 
             if (!$user) {
-                return $this->addAppUser($req, collect());
+                $response = $this->addAppUser($req, collect());
+                if ($response->getStatusCode() === 200) {
+                    $this->clearOtp((string) $req->contactNo);
+                }
+                return $response;
             }
 
             $hasCustomerRole = DB::table('user_roles')
@@ -796,41 +660,10 @@ class UserController extends Controller
 
             $token = JWTAuth::fromUser($user);
 
-            if ($req->userDeviceDetails) {
-                $appId = $req->userDeviceDetails['appId'];
-                $userDeviceDetail = DB::table('user_device_details')
-                    ->join('users', 'users.id', '=', 'user_device_details.userId')
-                    ->where('users.contactNo', '=', $req->contactNo)
-                    ->where('user_device_details.appId', '=', $appId)
-                    ->select('user_device_details.*')
-                    ->get();
+            $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
+            UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
 
-                if ($userDeviceDetail->count() == 0) {
-                    UserDeviceDetail::create([
-                        'userId' => $user->id,
-                        'appId' => $req->userDeviceDetails['appId'],
-                        'deviceId' => $req->userDeviceDetails['deviceId'],
-                        'fcmToken' => $req->userDeviceDetails['fcmToken'],
-                        'deviceLocation' => $req->userDeviceDetails['deviceLocation'] ?? '',
-                        'deviceManufacturer' => $req->userDeviceDetails['deviceManufacturer'],
-                        'deviceModel' => $req->userDeviceDetails['deviceModel'],
-                        'appVersion' => $req->userDeviceDetails['appVersion'],
-                    ]);
-                } else {
-                    $userDeviceDetail = UserDeviceDetail::find($userDeviceDetail[0]->id);
-                    if ($userDeviceDetail) {
-                        $userDeviceDetail->appId = $req->userDeviceDetails['appId'];
-                        $userDeviceDetail->deviceId = $req->userDeviceDetails['deviceId'];
-                        $userDeviceDetail->fcmToken = $req->userDeviceDetails['fcmToken'];
-                        $userDeviceDetail->deviceLocation = $req->userDeviceDetails['deviceLocation'] ?? '';
-                        $userDeviceDetail->deviceManufacturer = $req->userDeviceDetails['deviceManufacturer'];
-                        $userDeviceDetail->deviceModel = $req->userDeviceDetails['deviceModel'];
-                        $userDeviceDetail->appVersion = $req->userDeviceDetails['appVersion'];
-                        $userDeviceDetail->updated_at = Carbon::now()->timestamp;
-                        $userDeviceDetail->update();
-                    }
-                }
-            }
+            $this->clearOtp((string) $req->contactNo);
 
             $id = collect([(object) ['id' => $user->id]]);
 

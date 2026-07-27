@@ -252,7 +252,7 @@ class UserController extends Controller
                 $smsSender = env('SMS_SENDER', 'RLTREW');
                 $smsDltTeId = env('SMS_DLT_TE_ID');
                 curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles=8770551008&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%205%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
+                    CURLOPT_URL => 'http://control.yourbulksms.com/api/sendhttp.php?authkey='.$smsAuthKey.'&mobiles='.$req['contactNo'].'&message='.$otp.'%20is%20your%20Login%20one-time%20password%20for%20Relationship%20Revive.Please%20use%20it%20within%205%20minutes.%20Keep%20it%20secure%20and%20private.%20-%20Relationship%20Revive&sender='.$smsSender.'&route=2&country=0&DLT_TE_ID='.$smsDltTeId,
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_ENCODING => '',
                     CURLOPT_MAXREDIRS => 10,

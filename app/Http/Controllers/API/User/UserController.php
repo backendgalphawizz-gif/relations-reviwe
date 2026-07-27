@@ -615,13 +615,74 @@ class UserController extends Controller
     }
 
     //Login customer
+    // public function loginAppUser1(Request $req)
+    // {
+    //     // die("Hello");
+    //     try {
+    //         $validator = Validator::make($req->only('contactNo', 'otp'), [
+    //             'contactNo' => 'required',
+    //             // 'otp' => 'required',
+    //         ]);
+
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'error' => $validator->errors(),
+    //                 'status' => 400,
+    //             ], 400);
+    //         }
+
+    //         $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
+    //         if ($otpError) {
+    //             return response()->json($otpError, 400);
+    //         }
+
+    //         $user = User::where('contactNo', $req->contactNo)->first();
+
+    //         if (!$user) {
+    //             $response = $this->addAppUser($req, collect());
+    //             if ($response->getStatusCode() === 200) {
+    //                 $this->clearOtp((string) $req->contactNo);
+    //             }
+    //             return $response;
+    //         }
+
+    //         $hasCustomerRole = DB::table('user_roles')
+    //             ->where('userId', $user->id)
+    //             ->where('roleId', 3)
+    //             ->exists();
+
+    //         if (!$hasCustomerRole) {
+    //             UserRole::create([
+    //                 'userId' => $user->id,
+    //                 'roleId' => 3,
+    //             ]);
+    //         }
+
+    //         $token = JWTAuth::fromUser($user);
+
+    //         $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
+    //         UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
+
+    //         $this->clearOtp((string) $req->contactNo);
+
+    //         $id = collect([(object) ['id' => $user->id]]);
+
+    //         return $this->respondWithTokenApp($token, $id);
+    //     } catch (\Exception$e) {
+    //         return response()->json([
+    //             'error' => false,
+    //             'message' => $e->getMessage(),
+    //             'status' => 500,
+    //         ], 500);
+    //     }
+    // }
+
     public function loginAppUser(Request $req)
     {
         // die("Hello");
         try {
-            $validator = Validator::make($req->only('contactNo', 'otp'), [
+            $validator = Validator::make($req->only('contactNo'), [
                 'contactNo' => 'required',
-                // 'otp' => 'required',
             ]);
 
             if ($validator->fails()) {
@@ -631,19 +692,10 @@ class UserController extends Controller
                 ], 400);
             }
 
-            $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
-            if ($otpError) {
-                return response()->json($otpError, 400);
-            }
-
             $user = User::where('contactNo', $req->contactNo)->first();
 
             if (!$user) {
-                $response = $this->addAppUser($req, collect());
-                if ($response->getStatusCode() === 200) {
-                    $this->clearOtp((string) $req->contactNo);
-                }
-                return $response;
+                return $this->addAppUser($req, collect());
             }
 
             $hasCustomerRole = DB::table('user_roles')
@@ -662,8 +714,6 @@ class UserController extends Controller
 
             $deviceDetails = is_array($req->userDeviceDetails) ? $req->userDeviceDetails : null;
             UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
-
-            $this->clearOtp((string) $req->contactNo);
 
             $id = collect([(object) ['id' => $user->id]]);
 

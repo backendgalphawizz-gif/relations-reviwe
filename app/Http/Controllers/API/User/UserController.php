@@ -619,9 +619,9 @@ class UserController extends Controller
     {
         // die("Hello");
         try {
-            $validator = Validator::make($req->only('contactNo', 'otp'), [
+            $validator = Validator::make($req->only('contactNo'), [
                 'contactNo' => 'required',
-                'otp' => 'required',
+                // 'otp' => 'required',
             ]);
 
             if ($validator->fails()) {
@@ -631,10 +631,10 @@ class UserController extends Controller
                 ], 400);
             }
 
-            $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
-            if ($otpError) {
-                return response()->json($otpError, 400);
-            }
+            // $otpError = $this->validateStoredOtp((string) $req->contactNo, $req->otp);
+            // if ($otpError) {
+            //     return response()->json($otpError, 400);
+            // }
 
             $user = User::where('contactNo', $req->contactNo)->first();
 

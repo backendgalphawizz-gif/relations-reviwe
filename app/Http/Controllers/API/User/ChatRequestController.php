@@ -7,6 +7,7 @@ use App\Models\AstrologerModel\Astrologer;
 use App\Models\UserModel\CallRequest;
 use App\Models\UserModel\ChatRequest;
 use App\services\FCMService;
+use App\Services\WaitListService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1022,9 +1023,16 @@ class ChatRequestController extends Controller
             );
             DB::table('astrologers')->where('id', '=', $req->astrologerId)
                 ->update($status);
+
+            $notifiedUser = null;
+            if (strcasecmp((string) $req->status, 'Online') === 0) {
+                $notifiedUser = WaitListService::notifyNextWaitingUser($req->astrologerId);
+            }
+
             return response()->json([
                 "message" => "Update Astrologer",
                 'status' => 200,
+                'waitlistNotified' => $notifiedUser,
             ], 200);
         } catch (\Exception$e) {
             return response()->json([

@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\services\FCMService;
+use App\Services\WaitListService;
+use App\Services\CallRingService;
 
 class DashboardController extends Controller
 {
@@ -29,7 +31,7 @@ class DashboardController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function index() {
+    public function index(Request $request) {
 
         $user = Auth::guard('advisor')->user();
         if(!$user) {
@@ -40,17 +42,134 @@ class DashboardController extends Controller
 
         $calls = CallRequest::select(DB::raw('SUM(deduction) as total, SUM(totalMin) as total_minutes'))->where('astrologerId', $astrologer->id)->first();
         $callhistories = CallRequest::with(['astrologer', 'user'])->where('callStatus', 'Completed')->where('astrologerId', $astrologer->id)->orderBy('id', 'DESC')->get();
-        $callRequests = CallRequest::with(['astrologer', 'user'])->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed'])->where('astrologerId', $astrologer->id)->orderBy('id', 'DESC')->get();
         $chatRequests = ChatRequest::with(['astrologer', 'user'])->whereIn('chatStatus', ['Pending', 'Accepted', 'Confirmed'])->where('astrologerId', $astrologer->id)->orderBy('id', 'DESC')->get();
-        // dd($callRequests, $astrologer->id);
-        // $callRequests = [];
+
+        $filter = strtolower(trim((string) $request->query('filter', 'incoming')));
+        $allowedFilters = ['incoming', 'calls', 'running', 'rejected', 'missed', 'minutes', 'earning'];
+        if (!in_array($filter, $allowedFilters, true)) {
+            $filter = 'incoming';
+        }
+
+        $astroId = (int) $astrologer->id;
+        $listQuery = CallRequest::with(['astrologer', 'user']);
+
+        $listTitle = 'Incoming Call Requests';
+        $showActions = true;
+
+        switch ($filter) {
+            case 'calls':
+                $listQuery->where('astrologerId', $astroId)
+                    ->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed', 'Completed']);
+                $listTitle = 'Call Requests';
+                $showActions = false;
+                break;
+            case 'running':
+                $listQuery->where('astrologerId', $astroId)
+                    ->whereIn('callStatus', ['Accepted', 'Confirmed']);
+                $listTitle = 'Running Calls';
+                $showActions = true;
+                break;
+            case 'rejected':
+                // Own rejected calls + sequential calls this advisor explicitly rejected
+                $listQuery->where(function ($q) use ($astroId) {
+                    $q->where(function ($own) use ($astroId) {
+                        $own->where('astrologerId', $astroId)
+                            ->where('callStatus', 'Rejected');
+                    })->orWhere(function ($explicit) use ($astroId) {
+                        $explicit->whereJsonContains('rejected_astrologer_ids', $astroId)
+                            ->orWhereJsonContains('rejected_astrologer_ids', (string) $astroId);
+                    });
+                });
+                $listTitle = 'Rejected Calls';
+                $showActions = false;
+                break;
+            case 'missed':
+                // Timed out / moved on — exclude advisors who explicitly rejected
+                $listQuery->where(function ($q) use ($astroId) {
+                        $q->whereJsonContains('tried_astrologer_ids', $astroId)
+                            ->orWhereJsonContains('tried_astrologer_ids', (string) $astroId);
+                    })
+                    ->where('astrologerId', '!=', $astroId)
+                    ->where(function ($q) use ($astroId) {
+                        $q->whereNull('rejected_astrologer_ids')
+                            ->orWhere(function ($notRejected) use ($astroId) {
+                                $notRejected->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
+                                    ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
+                            });
+                    });
+                $listTitle = 'Missed Calls';
+                $showActions = false;
+                break;
+            case 'minutes':
+                $listQuery->where('astrologerId', $astroId)
+                    ->where('callStatus', 'Completed');
+                $listTitle = 'Completed Calls (Total Minutes)';
+                $showActions = false;
+                break;
+            case 'earning':
+                $listQuery->where('astrologerId', $astroId)
+                    ->where('callStatus', 'Completed');
+                $listTitle = 'Completed Calls (Total Earning)';
+                $showActions = false;
+                break;
+            default: // incoming
+                $listQuery->where('astrologerId', $astroId)
+                    ->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed']);
+                $listTitle = 'Incoming Call Requests';
+                $showActions = true;
+                break;
+        }
+
+        $callRequests = $listQuery->orderBy('id', 'DESC')->paginate(10)->withQueryString();
+
+        // Attach who ended the call (Rejected Calls): Me | Customer | Time Over
+        if ($filter === 'rejected') {
+            foreach ($callRequests as $call) {
+                $call->rejectedByName = $this->resolveRejectedByLabel($call, $astroId);
+            }
+        }
+
+        // Missed Calls are always 30s timeout (moved to another advisor)
+        if ($filter === 'missed') {
+            foreach ($callRequests as $call) {
+                $call->rejectedByName = 'Time Over';
+            }
+        }
+
+        $missedCallCount = CallRequest::query()
+            ->where(function ($q) use ($astroId) {
+                $q->whereJsonContains('tried_astrologer_ids', $astroId)
+                    ->orWhereJsonContains('tried_astrologer_ids', (string) $astroId);
+            })
+            ->where('astrologerId', '!=', $astroId)
+            ->where(function ($q) use ($astroId) {
+                $q->whereNull('rejected_astrologer_ids')
+                    ->orWhere(function ($notRejected) use ($astroId) {
+                        $notRejected->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
+                            ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
+                    });
+            })
+            ->count();
+
+        $rejectedCallCount = CallRequest::query()
+            ->where(function ($q) use ($astroId) {
+                $q->where(function ($own) use ($astroId) {
+                    $own->where('astrologerId', $astroId)
+                        ->where('callStatus', 'Rejected');
+                })->orWhere(function ($explicit) use ($astroId) {
+                    $explicit->whereJsonContains('rejected_astrologer_ids', $astroId)
+                        ->orWhereJsonContains('rejected_astrologer_ids', (string) $astroId);
+                });
+            })
+            ->count();
 
         $result = [
-            "totalCallRequest" => CallRequest::where('astrologerId', $astrologer->id)->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed', 'Completed'])->count(),
-            "totalRejectedCallRequest" => CallRequest::where('astrologerId', $astrologer->id)->whereIn('callStatus', ['Rejected'])->count(),
-            "totalRunningCallRequest" => CallRequest::where('astrologerId', $astrologer->id)->whereIn('callStatus', ['Accepted', 'Confirmed'])->count(),
+            "totalCallRequest" => CallRequest::where('astrologerId', $astroId)->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed', 'Completed'])->count(),
+            "totalRejectedCallRequest" => $rejectedCallCount,
+            "totalMissedCallRequest" => $missedCallCount,
+            "totalRunningCallRequest" => CallRequest::where('astrologerId', $astroId)->whereIn('callStatus', ['Accepted', 'Confirmed'])->count(),
             "totalminutes" => $calls->total_minutes,
-            "totalChatRequest" => ChatRequest::where('astrologerId', $astrologer->id)->count(),
+            "totalChatRequest" => ChatRequest::where('astrologerId', $astroId)->count(),
             "totalReportRequest" => 0,
             "topAstrologer" => 0,
             "totalEarning" => $calls->total,
@@ -63,7 +182,63 @@ class DashboardController extends Controller
             "unverifiedAstrologer" => 0
         ];
 
-        return view('vendor.pages.dashboard', compact('result', 'callhistories', 'callRequests', 'chatRequests'));
+        return view('vendor.pages.dashboard', compact(
+            'result',
+            'callhistories',
+            'callRequests',
+            'chatRequests',
+            'filter',
+            'listTitle',
+            'showActions'
+        ));
+    }
+
+    /**
+     * Rejected By column for current advisor:
+     * - Me → this advisor pressed Reject
+     * - Time Over → ring missed / timed out (any advisor miss)
+     * - Customer → customer cancelled while this advisor had the call
+     */
+    protected function resolveRejectedByLabel(CallRequest $call, int $astroId): string
+    {
+        $ids = is_array($call->rejected_astrologer_ids) ? $call->rejected_astrologer_ids : [];
+        $ids = array_map('intval', $ids);
+        $tried = is_array($call->tried_astrologer_ids) ? $call->tried_astrologer_ids : [];
+        $tried = array_map('intval', $tried);
+
+        $iRejected = in_array($astroId, $ids, true);
+        $iTried = in_array($astroId, $tried, true);
+        $reason = strtolower(trim((string) ($call->rejected_by ?? '')));
+
+        // Explicit Reject by this advisor always wins
+        if ($iRejected || $reason === 'advisor') {
+            if ($iRejected || (int) $call->astrologerId === $astroId) {
+                return 'Me';
+            }
+        }
+
+        // Stored reason from cancel / timeout exhaust
+        if ($reason === 'customer' && (int) $call->astrologerId === $astroId) {
+            return 'Customer';
+        }
+        if ($reason === 'timeout') {
+            return 'Time Over';
+        }
+        if ($reason === 'customer') {
+            // Customer cancelled on another advisor; if I only timed out earlier, still Time Over
+            return $iTried ? 'Time Over' : 'Customer';
+        }
+
+        // Legacy rows (no rejected_by): infer
+        if ($iTried && (bool) $call->is_sequential) {
+            return 'Time Over';
+        }
+        if ((int) $call->astrologerId === $astroId && $call->callStatus === 'Rejected') {
+            // Assigned to me, not my Reject → customer cancelled
+            return 'Customer';
+        }
+
+        return $iTried ? 'Time Over' : 'Customer';
     }
 
     public function profile() {
@@ -239,6 +414,204 @@ class DashboardController extends Controller
         $transactions = DB::table('wallettransaction')->where('userId', $user->id)->orderBy('id', 'DESC')->paginate($limit); // ->skip($paginationStart)->take($limit)->get();
         return view('vendor.pages.transactions', compact( 'transactions'));
     }
+
+    public function notifications(Request $request)
+    {
+        $user = Auth::guard('advisor')->user();
+        if (!$user) {
+            return redirect()->route('advisor.login');
+        }
+
+        $notifications = DB::table('user_notifications')
+            ->where('userId', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('isDelete')->orWhere('isDelete', 0)->orWhere('isDelete', false);
+            })
+            ->orderBy('id', 'DESC')
+            ->paginate(15);
+
+        return view('vendor.pages.notifications', compact('notifications'));
+    }
+
+    public function updateFcmToken(Request $request)
+    {
+        $user = Auth::guard('advisor')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $token = trim((string) $request->input('fcm_token', ''));
+        if ($token === '') {
+            return response()->json(['status' => false, 'message' => 'FCM token required'], 422);
+        }
+
+        $appId = (int) ($request->input('appId') ?: 3);
+
+        // Free this token from any other user/device rows
+        DB::table('user_device_details')
+            ->where('fcmToken', $token)
+            ->where('userId', '!=', $user->id)
+            ->update(['fcmToken' => '', 'updated_at' => now()]);
+
+        $device = DB::table('user_device_details')
+            ->where('userId', $user->id)
+            ->where('appId', $appId)
+            ->first();
+
+        $payload = [
+            'userId' => $user->id,
+            'appId' => $appId,
+            'fcmToken' => $token,
+            'deviceId' => $request->input('userAgent') ?: ($request->header('User-Agent') ?: 'web'),
+            'deviceManufacturer' => $request->input('osName') ?: 'web',
+            'deviceModel' => $request->input('appVersion') ?: 'browser',
+            'appVersion' => '1.1.0',
+            'isActive' => 1,
+            'updated_at' => now(),
+        ];
+
+        if ($device) {
+            DB::table('user_device_details')->where('id', $device->id)->update($payload);
+        } else {
+            $payload['created_at'] = now();
+            DB::table('user_device_details')->insert($payload);
+        }
+
+        DB::table('users')->where('id', $user->id)->update([
+            'desktop_token' => $token,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'FCM token updated',
+        ]);
+    }
+
+    public function pendingCalls(Request $request)
+    {
+        $user = Auth::guard('advisor')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        // Move timed-out sequential rings so the next Online advisor (app/web) can receive
+        try {
+            CallRingService::advanceOverdueCalls();
+        } catch (\Throwable $e) {
+            // ignore scheduler failures for poll
+        }
+
+        $astrologer = Astrologer::where('userId', $user->id)->first();
+        if (!$astrologer) {
+            return response()->json(['status' => true, 'calls' => [], 'count' => 0]);
+        }
+
+        $astroId = (int) $astrologer->id;
+
+        // If this web advisor still holds an overdue sequential ring, force advance to next (app) advisor
+        try {
+            $overdue = CallRequest::query()
+                ->where('astrologerId', $astroId)
+                ->where('callStatus', 'Pending')
+                ->where(function ($q) {
+                    $q->where('is_sequential', true)->orWhere('is_sequential', 1);
+                })
+                ->whereNotNull('ring_started_at')
+                ->get();
+
+            foreach ($overdue as $call) {
+                $timeout = (int) ($call->ring_timeout_seconds ?: CallRingService::DEFAULT_TIMEOUT_SECONDS);
+                $started = Carbon::parse($call->ring_started_at);
+                if ($started->diffInSeconds(Carbon::now()) >= $timeout) {
+                    CallRingService::advanceToNextAdvisor($call, true, 'timeout');
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        $isOnline = strtolower((string) $astrologer->callStatus) === 'online';
+        if (!$isOnline) {
+            return response()->json([
+                'status' => true,
+                'count' => 0,
+                'calls' => [],
+                'advisorOnline' => false,
+                'callStatus' => $astrologer->callStatus,
+                'astrologerId' => $astrologer->id,
+            ]);
+        }
+
+        $calls = CallRequest::with('user')
+            ->where('astrologerId', $astroId)
+            ->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed'])
+            ->orderBy('id', 'DESC')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'count' => $calls->count(),
+            'calls' => $calls->map(function ($call) {
+                $timeout = (int) ($call->ring_timeout_seconds ?: CallRingService::DEFAULT_TIMEOUT_SECONDS);
+                $secondsLeft = null;
+                if ($call->is_sequential && $call->ring_started_at) {
+                    $elapsed = Carbon::parse($call->ring_started_at)->diffInSeconds(Carbon::now());
+                    $secondsLeft = max(0, $timeout - $elapsed);
+                }
+
+                return [
+                    'id' => $call->id,
+                    'userId' => $call->userId,
+                    'type' => $call->type,
+                    'callStatus' => $call->callStatus,
+                    'created_at' => $call->created_at,
+                    'is_sequential' => (bool) $call->is_sequential,
+                    'ring_timeout_seconds' => $timeout,
+                    'ringSecondsLeft' => $secondsLeft,
+                    'user' => [
+                        'id' => $call->user->id ?? null,
+                        'name' => $call->user->name ?? 'Customer',
+                    ],
+                ];
+            })->values(),
+            'advisorOnline' => true,
+            'callStatus' => $astrologer->callStatus,
+            'astrologerId' => $astrologer->id,
+        ]);
+    }
+
+    public function privacyPolicy()
+    {
+        $user = Auth::guard('advisor')->user();
+        if (!$user) {
+            return redirect()->route('advisor.login');
+        }
+
+        $data = DB::table('static_pages')->where('slug', 'privacy_policy')->first();
+
+        return view('vendor.pages.static-page', [
+            'pageTitle' => $data->title ?? 'Privacy Policy',
+            'content' => $data->description ?? '<p>Content not available.</p>',
+        ]);
+    }
+
+    public function termsCondition()
+    {
+        $user = Auth::guard('advisor')->user();
+        if (!$user) {
+            return redirect()->route('advisor.login');
+        }
+
+        $data = DB::table('static_pages')->where('slug', 'terms_condition')->first();
+
+        return view('vendor.pages.static-page', [
+            'pageTitle' => $data->title ?? 'Terms & Condition',
+            'content' => $data->description ?? '<p>Content not available.</p>',
+        ]);
+    }
+
     public function withdrawls(Request $request) {
         $user = Auth::guard('advisor')->user();
         $astrologer = Astrologer::where('userId', $user->id)->first();
@@ -319,10 +692,47 @@ class DashboardController extends Controller
         $astrologer->callStatus = $callStatus;
         $astrologer->callWaitTime = $callStatus == 'Wait Time' ? $callWaitTime : NULL;
         $astrologer->save();
+
+        $notifiedUser = null;
+        if (strcasecmp((string) $callStatus, 'Online') === 0) {
+            CallRingService::releaseStaleLiveCalls((int) $id);
+            $advisorUser = Auth::guard('advisor')->user();
+            if ($advisorUser) {
+                $now = now();
+                $device = DB::table('user_device_details')
+                    ->where('userId', $advisorUser->id)
+                    ->where('appId', 3)
+                    ->first();
+                if ($device) {
+                    DB::table('user_device_details')->where('id', $device->id)->update([
+                        'isActive' => 1,
+                        'updated_at' => $now,
+                    ]);
+                } else {
+                    DB::table('user_device_details')->insert([
+                        'userId' => $advisorUser->id,
+                        'appId' => 3,
+                        'isActive' => 1,
+                        'fcmToken' => '',
+                        'deviceId' => $request->userAgent() ?: 'web',
+                        'deviceManufacturer' => 'web',
+                        'deviceModel' => 'browser',
+                        'appVersion' => '1.1.0',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+            $notifiedUser = WaitListService::notifyNextWaitingUser($id);
+        } elseif (strcasecmp((string) $callStatus, 'Offline') === 0) {
+            CallRingService::handleAdvisorWentOffline((int) $id);
+        }
+
         return response()->json([
             'status' => true,
             'error' => '',
-            'message' => 'Profile Status updated'
+            'message' => 'Profile Status updated',
+            'waitlistNotified' => $notifiedUser,
         ], 200);
     }
 
@@ -360,11 +770,46 @@ class DashboardController extends Controller
 
     public function startCall(Request $request, $requestId) {
         $callRequest = CallRequest::find($requestId);
-        // dd($callRequest);
+        if (!$callRequest) {
+            return redirect()->route('advisor.dashboard')->with('error', 'Call request not found');
+        }
+
         if($request->type == 'reject') {
-            $callRequest->callStatus = 'Rejected';
-            $callRequest->save();
-            return redirect()->route('advisor.dashboard');
+            $actingAstrologerId = null;
+            $advisorUser = Auth::guard('advisor')->user();
+            if ($advisorUser) {
+                $actingAstrologerId = optional(Astrologer::where('userId', $advisorUser->id)->first())->id;
+            }
+
+            if ($callRequest->is_sequential && $callRequest->callStatus === 'Pending') {
+                // Track reject for this advisor, then ring next
+                if ($actingAstrologerId) {
+                    CallRingService::appendRejectedAstrologer($callRequest, (int) $actingAstrologerId);
+                    $callRequest->save();
+                }
+                CallRingService::clearWebIncomingCall($callRequest);
+                CallRingService::advanceToNextAdvisor($callRequest, true, 'rejected');
+            } else {
+                CallRingService::markRejectedByAdvisor(
+                    $callRequest,
+                    $actingAstrologerId ? (int) $actingAstrologerId : null
+                );
+            }
+            return redirect()->route('advisor.dashboard', ['filter' => 'rejected']);
+        }
+
+        $actingAstrologerId = null;
+        $advisorUser = Auth::guard('advisor')->user();
+        if ($advisorUser) {
+            $actingAstrologerId = optional(Astrologer::where('userId', $advisorUser->id)->first())->id;
+        }
+
+        $gate = CallRingService::validateAdvisorCanTakeCall($callRequest, $actingAstrologerId ? (int) $actingAstrologerId : null);
+        if (!$gate['allowed']) {
+            return redirect()->route('advisor.dashboard')->with(
+                'error',
+                $gate['message'] ?: 'This is a call you missed. Another astrologer has joined.'
+            );
         }
 
         if(in_array($callRequest->callStatus, ['Pending', 'Accepted', 'Confirmed'])) {
@@ -386,6 +831,8 @@ class DashboardController extends Controller
                 $callRequest->token = $rtcToken;
                 $callRequest->callStatus = 'Accepted';
                 $callRequest->save();
+
+                CallRingService::notifyMissedAdvisorsAfterJoin($callRequest);
                 
                 $userDeviceDetail = DB::table('user_device_details')
                     ->WHERE('user_device_details.userId', '=', $callRequest->userId)

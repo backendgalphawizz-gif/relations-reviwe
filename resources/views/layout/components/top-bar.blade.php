@@ -192,7 +192,15 @@ define('EXPRESSION', '/(?=[A-Z])/');
 
                 @else
 
-                    @if (preg_match('/[A-Z]/', Request::segment(2)))
+                    @if (Request::segment(2) === 'adsVideos')
+
+                        Videos Testimonials
+
+                    @elseif (Request::segment(2) === 'astrologer-enquiry')
+
+                        Advisor Enquiry
+
+                    @elseif (preg_match('/[A-Z]/', Request::segment(2)))
 
                         <?php
 
@@ -206,7 +214,7 @@ define('EXPRESSION', '/(?=[A-Z])/');
 
                     @else
 
-                        {{ Request::segment(2) }}
+                        {{ str_replace('-', ' ', Request::segment(2)) }}
 
                     @endif
 

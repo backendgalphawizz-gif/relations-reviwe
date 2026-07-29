@@ -18,6 +18,8 @@ use App\Models\UserModel\User;
 use App\Models\UserModel\UserDeviceDetail;
 use App\Models\UserModel\UserRole;
 use App\services\FCMService;
+use App\Services\AdminNotifyService;
+use App\Services\UserAuthSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -247,6 +249,13 @@ class AstrologerController extends Controller
             $astrologer->languageKnown = $languageKnown;
             $astrologer->astrologerCategoryId = $category;
             DB::commit();
+
+            AdminNotifyService::notifyNewAdvisorRequest(
+                (string) $astrologer->name,
+                (int) $astrologer->id,
+                (int) $user->id
+            );
+
             return response()->json([
                 'message' => 'Adviser add successfully',
                 'recordList' => $astrologer,
@@ -310,8 +319,19 @@ class AstrologerController extends Controller
 
             $token = JWTAuth::fromUser($user);
 
+            $deviceDetails = null;
             if ($req->userDeviceDetails) {
-                $appId = $req->userDeviceDetails['appId'];
+                $deviceDetails = [
+                    'appId' => $req->userDeviceDetails['appId'] ?? 2,
+                    'deviceId' => $req->userDeviceDetails['deviceId'] ?? null,
+                    'fcmToken' => $req->userDeviceDetails['fcmToken'] ?? null,
+                    'deviceLocation' => $req->userDeviceDetails['deviceLocation'] ?? '',
+                    'deviceManufacturer' => $req->userDeviceDetails['deviceManufacturer'] ?? null,
+                    'deviceModel' => $req->userDeviceDetails['deviceModel'] ?? null,
+                    'appVersion' => $req->userDeviceDetails['appVersion'] ?? null,
+                ];
+
+                $appId = $deviceDetails['appId'];
                 $userDeviceDetail = DB::table('user_device_details')
                     ->join('users', 'users.id', '=', 'user_device_details.userId')
                     ->where('users.contactNo', '=', $req->contactNo)
@@ -322,29 +342,32 @@ class AstrologerController extends Controller
                 if ($userDeviceDetail->count() == 0) {
                     UserDeviceDetail::create([
                         'userId' => $astrologer->userId,
-                        'appId' => $req->userDeviceDetails['appId'],
-                        'deviceId' => $req->userDeviceDetails['deviceId'],
-                        'fcmToken' => $req->userDeviceDetails['fcmToken'],
-                        'deviceLocation' => $req->userDeviceDetails['deviceLocation'] ?? '',
-                        'deviceManufacturer' => $req->userDeviceDetails['deviceManufacturer'],
-                        'deviceModel' => $req->userDeviceDetails['deviceModel'],
-                        'appVersion' => $req->userDeviceDetails['appVersion'],
+                        'appId' => $deviceDetails['appId'],
+                        'deviceId' => $deviceDetails['deviceId'],
+                        'fcmToken' => $deviceDetails['fcmToken'],
+                        'deviceLocation' => $deviceDetails['deviceLocation'] ?? '',
+                        'deviceManufacturer' => $deviceDetails['deviceManufacturer'],
+                        'deviceModel' => $deviceDetails['deviceModel'],
+                        'appVersion' => $deviceDetails['appVersion'],
                     ]);
                 } else {
                     $userDeviceDetail = UserDeviceDetail::find($userDeviceDetail[0]->id);
                     if ($userDeviceDetail) {
-                        $userDeviceDetail->appId = $req->userDeviceDetails['appId'];
-                        $userDeviceDetail->deviceId = $req->userDeviceDetails['deviceId'];
-                        $userDeviceDetail->fcmToken = $req->userDeviceDetails['fcmToken'];
-                        $userDeviceDetail->deviceLocation = $req->userDeviceDetails['deviceLocation'] ?? '';
-                        $userDeviceDetail->deviceManufacturer = $req->userDeviceDetails['deviceManufacturer'];
-                        $userDeviceDetail->deviceModel = $req->userDeviceDetails['deviceModel'];
-                        $userDeviceDetail->appVersion = $req->userDeviceDetails['appVersion'];
+                        $userDeviceDetail->appId = $deviceDetails['appId'];
+                        $userDeviceDetail->deviceId = $deviceDetails['deviceId'];
+                        $userDeviceDetail->fcmToken = $deviceDetails['fcmToken'];
+                        $userDeviceDetail->deviceLocation = $deviceDetails['deviceLocation'] ?? '';
+                        $userDeviceDetail->deviceManufacturer = $deviceDetails['deviceManufacturer'];
+                        $userDeviceDetail->deviceModel = $deviceDetails['deviceModel'];
+                        $userDeviceDetail->appVersion = $deviceDetails['appVersion'];
                         $userDeviceDetail->updated_at = Carbon::now()->timestamp;
                         $userDeviceDetail->update();
                     }
                 }
             }
+
+            // Persist JWT so EnsureActiveApiToken accepts subsequent API calls
+            UserAuthSessionService::startSession($user, $token, $req, $deviceDetails);
 
             $astrologer->allSkill = array_map('intval', explode(',', $astrologer->allSkill));
             $astrologer->primarySkill = array_map('intval', explode(',', $astrologer->primarySkill));
@@ -751,43 +774,59 @@ class AstrologerController extends Controller
     public function getRandomAstrologer(Request $req)
     {
         try {
+            // Move timed-out pending rings so advisors are not stuck "busy"
+            try {
+                \App\Services\CallRingService::advanceOverdueCalls();
+            } catch (\Throwable $e) {
+                // ignore
+            }
+
+            $categoryId = $req->input('astrologerCategoryId');
+            if ($categoryId !== null && $categoryId !== '' && strtolower((string) $categoryId) !== 'null') {
+                $categoryId = (int) $categoryId;
+            } else {
+                $categoryId = null;
+            }
+
             // Fetch astrologers that meet the initial criteria
             $astrologerQuery = Astrologer::query()
                 ->where('isActive', 1)
                 ->where('isVerified', 1)
-                ->where('callStatus', 'Online')
-                // ->where('userId', 422)
+                ->whereRaw('LOWER(TRIM(callStatus)) = ?', ['online'])
                 ->where('isDelete', 0);
-    
-            // Apply additional filters if provided
-            if ($req->astrologerCategoryId) {
-                $astrologerQuery->when($req->astrologerCategoryId!='', function ($query) use ($req) {
-                    $query->whereRaw("FIND_IN_SET(?, astrologerCategoryId)", [$req->astrologerCategoryId]);
-                    // $query->where('astrologerCategoryId', 'LIKE', '%' . $req->astrologerCategoryId . '%');
-                });
+
+            // Category is stored as CSV (e.g. "1,2,40") — match whole id, ignore spaces
+            if (!empty($categoryId)) {
+                $astrologerQuery->whereRaw(
+                    "FIND_IN_SET(?, REPLACE(COALESCE(astrologerCategoryId, ''), ' ', ''))",
+                    [$categoryId]
+                );
             }
-            // DB::enableQueryLog();
-            // Fetch all astrologers
+
             $astrologers = $astrologerQuery->get();
-            // dd(DB::getQueryLog(), $astrologers);
-    
-            // Filter astrologers based on callStatus
-            $excludedStatuses = ['Pending', 'Accepted', 'Confirmed'];
-            $filteredAstrologers = $astrologers->filter(function ($astrologer) use ($excludedStatuses) {
-                $hasExcludedStatus = DB::table('callrequest')
-                    ->where('astrologerId', $astrologer->id)
-                    ->whereIn('callStatus', $excludedStatuses)
-                    ->exists();
-    
-                return !$hasExcludedStatus;
-            });
-    
-            // If there are no astrologers left after filtering, return a message
+
+            // Filter out advisors currently on a live / ringing call (ignore stale stuck rows)
+            $filteredAstrologers = $astrologers->filter(function ($astrologer) {
+                return !$this->isAdvisorBusyOnLiveCall((int) $astrologer->id);
+            })->values();
+
+            // If there are no astrologers left after filtering, suggest next available schedule
             if ($filteredAstrologers->isEmpty()) {
+                $nextAvailable = $this->resolveNextAstrologerAvailability($categoryId);
+
                 return response()->json([
-                    'message' => 'No available astrologers.',
-                    'status' => 404,
-                ], 404);
+                    'recordList' => [],
+                    'status' => 200,
+                    'totalCount' => 0,
+                    'message' => $nextAvailable['message'],
+                    'nextAvailableAt' => $nextAvailable['nextAvailableAt'],
+                    'nextAvailableDay' => $nextAvailable['nextAvailableDay'],
+                    'nextAvailableFromTime' => $nextAvailable['nextAvailableFromTime'],
+                    'nextAvailableToTime' => $nextAvailable['nextAvailableToTime'],
+                    'availableAfter' => $nextAvailable['availableAfter'],
+                    'astrologerId' => $nextAvailable['astrologerId'],
+                    'astrologerName' => $nextAvailable['astrologerName'],
+                ], 200);
             }
 
             // Randomly select one astrologer from the filtered results
@@ -799,18 +838,6 @@ class AstrologerController extends Controller
                 ->SELECT('user_device_details.*')
                 ->get();
 
-            // FCMService::send(
-            //         $userDeviceDetail,
-            //         [
-            //             'title' => 'User is trying to connect with you',
-            //             'body' => [
-            //                 "notificationType" => 10,
-            //                 'description' => '',
-            //             ],
-            //         ]
-            //     );
-
-    
             // Fetch additional data like rating, total call requests, etc.
             $review = DB::table('user_reviews')
                 ->where('astrologerId', $selectedAstrologer->id)
@@ -819,19 +846,19 @@ class AstrologerController extends Controller
             $avgRating = $review->isNotEmpty()
                 ? $review->avg('rating')
                 : 0;
-            
+
             $selectedAstrologer->rating = $avgRating;
-    
+
             $totalCall = DB::table('callrequest')
                 ->where('astrologerId', $selectedAstrologer->id)
                 ->count();
             $selectedAstrologer->totalCallRequest = $totalCall;
-    
+
             $totalChat = DB::table('chatrequest')
                 ->where('astrologerId', $selectedAstrologer->id)
                 ->count();
             $selectedAstrologer->totalChatRequest = $totalChat;
-    
+
             // Check if free chat is available
             $isFreeAvailable = true;
             $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first();
@@ -842,16 +869,15 @@ class AstrologerController extends Controller
             } else {
                 $isFreeAvailable = false;
             }
-    
+
             $selectedAstrologer->isFreeAvailable = $isFreeAvailable;
-    
+
             return response()->json([
                 'recordList' => [$selectedAstrologer],
-                // 'list' => $filteredAstrologers,
                 'status' => 200,
                 'totalCount' => count([$selectedAstrologer]),
             ], 200);
-    
+
         } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
@@ -860,8 +886,210 @@ class AstrologerController extends Controller
             ], 500);
         }
     }
-    
 
+    /**
+     * True when advisor has a recent ringing/live call (stale Accepted/Pending are ignored).
+     */
+    protected function isAdvisorBusyOnLiveCall(int $astrologerId): bool
+    {
+        $now = Carbon::now();
+
+        // Live call in progress — only count recently updated rows
+        $live = DB::table('callrequest')
+            ->where('astrologerId', $astrologerId)
+            ->whereIn('callStatus', ['Accepted', 'Confirmed'])
+            ->where(function ($q) use ($now) {
+                $q->where('updated_at', '>=', $now->copy()->subMinutes(90))
+                    ->orWhere('created_at', '>=', $now->copy()->subMinutes(90));
+            })
+            ->exists();
+        if ($live) {
+            return true;
+        }
+
+        // Incoming ring — only recent pending
+        return DB::table('callrequest')
+            ->where('astrologerId', $astrologerId)
+            ->where('callStatus', 'Pending')
+            ->where(function ($q) use ($now) {
+                $q->where('ring_started_at', '>=', $now->copy()->subMinutes(2))
+                    ->orWhere(function ($inner) use ($now) {
+                        $inner->whereNull('ring_started_at')
+                            ->where('updated_at', '>=', $now->copy()->subMinutes(5));
+                    })
+                    ->orWhere(function ($inner) use ($now) {
+                        $inner->whereNull('ring_started_at')
+                            ->where('created_at', '>=', $now->copy()->subMinutes(5));
+                    });
+            })
+            ->exists();
+    }
+
+    /**
+     * Find the soonest upcoming availability slot among active verified astrologers.
+     */
+    protected function resolveNextAstrologerAvailability($categoryId = null): array
+    {
+        $empty = [
+            'message' => 'No astrologer available right now. Please try again later.',
+            'nextAvailableAt' => null,
+            'nextAvailableDay' => null,
+            'nextAvailableFromTime' => null,
+            'nextAvailableToTime' => null,
+            'availableAfter' => null,
+            'astrologerId' => null,
+            'astrologerName' => null,
+        ];
+
+        $astroQuery = Astrologer::query()
+            ->where('isActive', 1)
+            ->where('isVerified', 1)
+            ->where('isDelete', 0);
+
+        if (!empty($categoryId)) {
+            $astroQuery->whereRaw(
+                "FIND_IN_SET(?, REPLACE(COALESCE(astrologerCategoryId, ''), ' ', ''))",
+                [(int) $categoryId]
+            );
+        }
+
+        $astrologerIds = $astroQuery->pluck('id');
+        if ($astrologerIds->isEmpty()) {
+            return $empty;
+        }
+
+        $slots = DB::table('astrologer_availabilities')
+            ->whereIn('astrologerId', $astrologerIds)
+            ->where(function ($q) {
+                $q->whereNull('isDelete')->orWhere('isDelete', 0);
+            })
+            ->where(function ($q) {
+                $q->whereNull('isActive')->orWhere('isActive', 1);
+            })
+            ->whereNotNull('fromTime')
+            ->where('fromTime', '!=', '')
+            ->get();
+
+        if ($slots->isEmpty()) {
+            return array_merge($empty, [
+                'message' => 'No astrologer available right now. Availability schedule is not set. Please try again later.',
+            ]);
+        }
+
+        $now = Carbon::now();
+        $best = null;
+
+        for ($dayOffset = 0; $dayOffset < 7; $dayOffset++) {
+            $date = $now->copy()->addDays($dayOffset);
+            $dayName = $date->format('l');
+
+            foreach ($slots as $slot) {
+                if (strcasecmp(trim((string) $slot->day), $dayName) !== 0) {
+                    continue;
+                }
+
+                $from = $this->parseAvailabilityDateTime($date, $slot->fromTime);
+                $to = $this->parseAvailabilityDateTime($date, $slot->toTime);
+
+                if (!$from) {
+                    continue;
+                }
+
+                if ($to && $to->lte($now)) {
+                    continue;
+                }
+
+                $candidateStart = $from->gt($now) ? $from : $now->copy()->addMinute();
+                if ($to && $candidateStart->gte($to)) {
+                    continue;
+                }
+
+                if ($best === null || $candidateStart->lt($best['start'])) {
+                    $astrologer = Astrologer::find($slot->astrologerId);
+                    $best = [
+                        'start' => $candidateStart,
+                        'from' => $from,
+                        'to' => $to,
+                        'day' => $dayName,
+                        'fromTime' => $slot->fromTime,
+                        'toTime' => $slot->toTime,
+                        'astrologerId' => $slot->astrologerId,
+                        'astrologerName' => $astrologer->name ?? null,
+                        'isOngoingSlot' => $from->lte($now) && (!$to || $to->gt($now)),
+                    ];
+                }
+            }
+        }
+
+        if ($best === null) {
+            return array_merge($empty, [
+                'message' => 'No astrologer available right now. Please check back later when advisors are scheduled.',
+            ]);
+        }
+
+        $displayTime = $best['from']->format('h:i A');
+        $displayDate = $best['from']->format('d M Y');
+        $dayLabel = $best['day'];
+
+        if ($best['isOngoingSlot']) {
+            $message = 'No astrologer is free to take calls right now. Advisors are scheduled until '
+                . ($best['to'] ? $best['to']->format('h:i A') : $best['toTime'])
+                . '. Please try again shortly, or call after the next available slot.';
+            $availableAfter = $now->copy()->addMinutes(5)->format('Y-m-d H:i:s');
+        } else {
+            $message = 'No astrologer available right now. Please call after '
+                . $displayTime
+                . ' on '
+                . $dayLabel
+                . ' ('
+                . $displayDate
+                . ')'
+                . ($best['astrologerName'] ? ' when ' . $best['astrologerName'] . ' will be available.' : ' when an astrologer will be available.');
+            $availableAfter = $best['from']->format('Y-m-d H:i:s');
+        }
+
+        return [
+            'message' => $message,
+            'nextAvailableAt' => $best['from']->format('Y-m-d H:i:s'),
+            'nextAvailableDay' => $dayLabel,
+            'nextAvailableFromTime' => $best['fromTime'],
+            'nextAvailableToTime' => $best['toTime'],
+            'availableAfter' => $availableAfter,
+            'astrologerId' => $best['astrologerId'],
+            'astrologerName' => $best['astrologerName'],
+        ];
+    }
+
+    /**
+     * Parse "06:47 AM" style time onto a given date.
+     */
+    protected function parseAvailabilityDateTime(Carbon $date, $timeStr): ?Carbon
+    {
+        if (empty($timeStr)) {
+            return null;
+        }
+
+        $timeStr = trim((string) $timeStr);
+        $formats = ['h:i A', 'h:iA', 'H:i', 'g:i A', 'g:iA'];
+
+        foreach ($formats as $format) {
+            try {
+                $parsed = Carbon::createFromFormat($format, $timeStr, $date->timezone);
+
+                return $date->copy()->setTime($parsed->hour, $parsed->minute, 0);
+            } catch (\Throwable $e) {
+                // try next format
+            }
+        }
+
+        try {
+            $parsed = Carbon::parse($timeStr, $date->timezone);
+
+            return $date->copy()->setTime($parsed->hour, $parsed->minute, 0);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 
     //Update astrologer
     public function updateAstrologer(Request $req)

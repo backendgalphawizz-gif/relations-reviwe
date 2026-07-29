@@ -482,9 +482,14 @@ class CustomerController extends Controller
         $this->path = env('API_URL');
         $customers = DB::table('users')
             ->join('user_roles', 'user_roles.userId', '=', 'users.id')
+            ->leftJoin('user_wallets', 'user_wallets.userId', '=', 'users.id')
             ->where('users.isDelete', '=', false)
             ->where('user_roles.roleId', '=', 3)
-            ->select('users.*', 'user_roles.roleId')
+            ->select(
+                'users.*',
+                'user_roles.roleId',
+                DB::raw('COALESCE(user_wallets.amount, 0) as walletAmount')
+            )
             ->orderBy('users.id', 'DESC');
         $searchString = $request->searchString ? $request->searchString : null;
         if ($searchString) {
@@ -494,7 +499,6 @@ class CustomerController extends Controller
             });
         }
         $customers = $customers->get();
-        // $callHistory =
 
         $headers = array(
             "Content-type" => "text/csv",
@@ -506,13 +510,15 @@ class CustomerController extends Controller
             "Name",
             "ContactNo",
             "BirthDate",
+            "WalletAmount",
         ]);
         for ($i = 0; $i < count($customers); $i++) {
             fputcsv($handle, [
                 $i + 1,
                 $customers[$i]->name,
                 $customers[$i]->contactNo,
-                date('d-m-Y', strtotime($customers[$i]->birthDate)),
+                $customers[$i]->birthDate ? date('d-m-Y', strtotime($customers[$i]->birthDate)) : '',
+                $customers[$i]->walletAmount ?? 0,
             ]);
         }
         fclose($handle);

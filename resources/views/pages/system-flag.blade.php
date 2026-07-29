@@ -303,9 +303,23 @@ li.nav-item.flex-1 {
                                                     <input type="hidden"
                                                         name="group[{{ $groupIndex }}][subGroup][{{ $subGroupIndex }}][systemFlag][{{ $systemFlagInd }}][name]"
                                                         value="{{ $systemFlag->name }}">
-                                                    <input type="number"
-                                                        name="group[{{ $groupIndex }}][subGroup][{{ $subGroupIndex }}][systemFlag][{{ $systemFlagInd }}][value]"
-                                                        class="form-control" required value="{{ $systemFlag->value }}">
+                                                    @if ($systemFlag->name === 'CallCommission')
+                                                        <input type="number"
+                                                            name="group[{{ $groupIndex }}][subGroup][{{ $subGroupIndex }}][systemFlag][{{ $systemFlagInd }}][value]"
+                                                            class="form-control call-commission-input"
+                                                            required
+                                                            value="{{ $systemFlag->value }}"
+                                                            min="0"
+                                                            max="99"
+                                                            maxlength="2"
+                                                            inputmode="numeric"
+                                                            oninput="limitTwoDigits(this)"
+                                                            onkeypress="return isTwoDigitNumberKey(event)">
+                                                    @else
+                                                        <input type="number"
+                                                            name="group[{{ $groupIndex }}][subGroup][{{ $subGroupIndex }}][systemFlag][{{ $systemFlagInd }}][value]"
+                                                            class="form-control" required value="{{ $systemFlag->value }}">
+                                                    @endif
                                                 </div>
                                             @endif
                                             @if ($systemFlag->valueType == 'Radio')
@@ -491,6 +505,36 @@ li.nav-item.flex-1 {
                 event.preventDefault();
                 return false;
             }
+        }
+
+        function isTwoDigitNumberKey(event) {
+            var charCode = event.which ? event.which : event.keyCode;
+            // Allow control keys (backspace, tab, arrows, delete)
+            if (charCode <= 31 || [8, 9, 37, 39, 46].indexOf(charCode) !== -1) {
+                return true;
+            }
+            if (charCode < 48 || charCode > 57) {
+                event.preventDefault();
+                return false;
+            }
+            var input = event.target;
+            var value = String(input.value || '');
+            if (value.length >= 2 && input.selectionStart === input.selectionEnd) {
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        }
+
+        function limitTwoDigits(el) {
+            var digits = String(el.value || '').replace(/\D/g, '');
+            if (digits.length > 2) {
+                digits = digits.slice(0, 2);
+            }
+            if (digits !== '' && parseInt(digits, 10) > 99) {
+                digits = '99';
+            }
+            el.value = digits;
         }
 
         $(document).on('change', '.update-status-published', function() {

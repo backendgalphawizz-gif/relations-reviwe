@@ -323,6 +323,9 @@ Route::post('callRequest/storeToken', [CallRequestController::class, 'storeToken
 Route::post('callRequest/end', [CallRequestController::class, 'endCall']);
 Route::post('callRequest/acceptCallRequest', [CallRequestController::class, 'acceptCallRequestFromCustomer']);
 Route::post('callRequest/rejectCallRequest', [CallRequestController::class, 'rejectCallRequestFromCustomer']);
+Route::post('callRequest/advanceRing', [CallRequestController::class, 'advanceRing']);
+Route::post('callRequest/checkAvailability', [CallRequestController::class, 'checkCallAvailability']);
+Route::get('callRequest/missed', [CallRequestController::class, 'getMissedCalls']);
 Route::post('storeCallRecording', [CallRequestController::class, 'storeCallRecording']);
 Route::post('getCallById', [CallRequestController::class, 'getCallById']);
 
@@ -356,6 +359,7 @@ Route::post('waitlist/add', [WaitListController::class, 'addWaitList']);
 Route::post('waitlist/get', [WaitListController::class, 'getWaitList']);
 Route::post('waitlist/delete', [WaitListController::class, 'deleteFromWaitList']);
 Route::post('waitlist/updateStatus', [WaitListController::class, 'editWaitList']);
+Route::post('waitlist/notifyNext', [WaitListController::class, 'notifyNext']);
 
 //systemflag
 Route::post('getSystemFlag', [SystemFlagController::class, 'getSystemFlag']);

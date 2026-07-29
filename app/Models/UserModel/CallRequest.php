@@ -23,9 +23,24 @@ class CallRequest extends Model
         'channelName',
         'chatId',
         'created_at',
+        'updated_at',
         'type',
         'sId1',
         'isFreeSession',
+        'is_sequential',
+        'tried_astrologer_ids',
+        'rejected_astrologer_ids',
+        'rejected_by',
+        'ring_started_at',
+        'ring_timeout_seconds',
+        'token',
+    ];
+
+    protected $casts = [
+        'is_sequential' => 'boolean',
+        'tried_astrologer_ids' => 'array',
+        'rejected_astrologer_ids' => 'array',
+        'ring_started_at' => 'datetime',
     ];
 
     public function astrologer() {

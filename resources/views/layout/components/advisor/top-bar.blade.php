@@ -222,6 +222,25 @@ define('EXPRESSION', '/(?=[A-Z])/');
 
         <!-- END: Notifications -->
 
+        @php
+            $topBarAstrologer = \App\Models\AstrologerModel\Astrologer::where('userId', auth('advisor')->id())->first();
+            $topBarCallStatus = $topBarAstrologer->callStatus ?? 'Offline';
+        @endphp
+
+        @if($topBarAstrologer)
+        <div class="intro-x mr-4 flex items-center gap-2" style="min-width:160px;">
+            <span class="hidden sm:inline text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">Status</span>
+            <select id="advisor-topbar-call-status"
+                class="form-select form-select-sm"
+                style="min-width:120px;height:36px;border-radius:8px;font-weight:600;"
+                data-astrologer-id="{{ $topBarAstrologer->id }}">
+                <option value="Online" {{ strtolower($topBarCallStatus) === 'online' ? 'selected' : '' }}>Online</option>
+                <option value="Offline" {{ strtolower($topBarCallStatus) === 'offline' ? 'selected' : '' }}>Offline</option>
+                <option value="Wait Time" {{ strtolower($topBarCallStatus) === 'wait time' ? 'selected' : '' }}>Wait Time</option>
+            </select>
+        </div>
+        @endif
+
         <!-- BEGIN: Account Menu -->
 
         <div class="intro-x dropdown w-8 h-8">
@@ -436,6 +455,45 @@ define('EXPRESSION', '/(?=[A-Z])/');
 
         }
 
+    </script>
+
+    <script>
+        (function() {
+            const select = document.getElementById('advisor-topbar-call-status');
+            if (!select) return;
+
+            select.addEventListener('change', function() {
+                const status = this.value;
+                const id = this.getAttribute('data-astrologer-id');
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('callStatus', status);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+                fetch(@json(route('advisor.update-call-status')), {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(function(response) {
+                    if (response.status) {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success(response.message || ('Status set to ' + status));
+                        }
+                    } else if (typeof toastr !== 'undefined') {
+                        toastr.error('Failed to update status');
+                    }
+                })
+                .catch(function() {
+                    if (typeof toastr !== 'undefined') toastr.error('Failed to update status');
+                });
+            });
+        })();
     </script>
 
 @endsection

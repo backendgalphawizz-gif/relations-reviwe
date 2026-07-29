@@ -1,13 +1,6 @@
-// firebase-messaging-sw.js
-
-// Import the necessary functions from the Firebase SDK
-// importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-// importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
-
 importScripts('https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker by passing the generated config
 const firebaseConfig = {
     apiKey: "AIzaSyAbVv-H2kbOH1REQ2ggNc7xxg0Bh9LfT28",
     authDomain: "realtionship-849b1.firebaseapp.com",
@@ -21,16 +14,56 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-// Retrieve an instance of Firebase Messaging so that it can handle background messages
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/firebase-logo.png' // Replace with your icon
-    };
+    console.log('[firebase-messaging-sw.js] background message', payload);
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    let dataBody = payload?.data?.body || {};
+    if (typeof dataBody === 'string') {
+        try { dataBody = JSON.parse(dataBody); } catch (e) { dataBody = {}; }
+    }
+
+    const notificationTitle = payload?.notification?.title
+        || (Number(dataBody?.notificationType) === 2 ? 'Incoming Call' : 'Notification');
+    const notificationBody = payload?.notification?.body
+        || dataBody?.description
+        || (dataBody?.userName
+            ? (dataBody.userName + ' is calling' + (dataBody.call_type ? ' (' + dataBody.call_type + ')' : ''))
+            : (Number(dataBody?.notificationType) === 2 ? 'You have an incoming call' : ''));
+
+    self.registration.showNotification(notificationTitle, {
+        body: notificationBody,
+        icon: '/assets/img/mainLogo.png',
+        requireInteraction: Number(dataBody?.notificationType) === 2,
+        data: {
+            link: dataBody?.link || '/advisor/dashboard',
+            notificationType: dataBody?.notificationType || null,
+            callId: dataBody?.callId || null,
+        },
+    });
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const link = (event.notification.data && event.notification.data.link)
+        ? event.notification.data.link
+        : '/advisor/dashboard';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            const prefersAdmin = String(link).includes('/admin');
+            for (const client of clientList) {
+                const isAdminClient = client.url.includes('/admin');
+                const isAdvisorClient = client.url.includes('/advisor');
+                if (((prefersAdmin && isAdminClient) || (!prefersAdmin && isAdvisorClient)) && 'focus' in client) {
+                    client.navigate(link);
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(link);
+            }
+        })
+    );
 });

@@ -142,6 +142,20 @@ class SystemFlagController extends Controller
                                         DB::Table('astrologers')
                                         ->update(['charge' => $sys['value']]);
                                     }
+                                    if ($sys['name'] === 'CallCommission') {
+                                        $commission = preg_replace('/\D/', '', (string) $sys['value']);
+                                        if (strlen($commission) > 2) {
+                                            $commission = substr($commission, 0, 2);
+                                        }
+                                        $commissionInt = (int) $commission;
+                                        if ($commissionInt < 0) {
+                                            $commissionInt = 0;
+                                        }
+                                        if ($commissionInt > 99) {
+                                            $commissionInt = 99;
+                                        }
+                                        $sys['value'] = (string) $commissionInt;
+                                    }
                                     $flagData = array(
                                         'value' => $sys['value'],
                                     );

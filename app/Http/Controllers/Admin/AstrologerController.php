@@ -396,6 +396,11 @@ class AstrologerController extends Controller
         }
         $astrologers = $astrologers->orderBy('id', 'DESC');
         $astrologers = $astrologers->get();
+
+        $categoryMap = DB::table('astrologer_categories')->pluck('name', 'id')->toArray();
+        $skillMap = DB::table('skills')->pluck('name', 'id')->toArray();
+        $languageMap = DB::table('languages')->pluck('languageName', 'id')->toArray();
+
         if ($astrologers && count($astrologers) > 0) {
             foreach ($astrologers as $astro) {
                 $review = DB::table('user_reviews')
@@ -413,8 +418,16 @@ class AstrologerController extends Controller
                     ->where('astrologerId', '=', $astro['id'])
                     ->count();
                 $astro['totalCallRequest'] = $totalCall;
+
+                $astro['advisorCategoryNames'] = $this->resolveCsvIdNames($astro->astrologerCategoryId, $categoryMap);
+                $astro['primarySkillNames'] = $this->resolveCsvIdNames($astro->primarySkill, $skillMap);
+                $astro['languageNames'] = $this->resolveCsvIdNames($astro->languageKnown, $languageMap);
+                $astro['birthDateFormatted'] = $astro->birthDate
+                    ? date('d-m-Y', strtotime($astro->birthDate))
+                    : '';
             }
         }
+
         $headers = array(
             "Content-type" => "text/csv",
         );
@@ -425,6 +438,11 @@ class AstrologerController extends Controller
             "Name",
             "ContactNo",
             "Gender",
+            "DateOfBirth",
+            "AdvisorCategory",
+            "PrimarySkill",
+            "Language",
+            "ExperienceInYears",
             "TotalCallRequest",
             "status",
         ]);
@@ -434,12 +452,43 @@ class AstrologerController extends Controller
                 $astrologers[$i]->name,
                 $astrologers[$i]->contactNo,
                 $astrologers[$i]->gender,
+                $astrologers[$i]->birthDateFormatted,
+                $astrologers[$i]->advisorCategoryNames,
+                $astrologers[$i]->primarySkillNames,
+                $astrologers[$i]->languageNames,
+                $astrologers[$i]->experienceInYears ?? 0,
                 $astrologers[$i]->totalCallRequest,
                 $astrologers[$i]->isVerified ? 'Verified' : 'UnVerified',
             ]);
         }
         fclose($handle);
         return Response::download($filename, "advisors.csv", $headers);
+    }
+
+    /**
+     * Convert comma-separated IDs to comma-separated names for CSV.
+     */
+    protected function resolveCsvIdNames($ids, array $map): string
+    {
+        if (empty($ids)) {
+            return '';
+        }
+
+        if (is_array($ids)) {
+            $idList = $ids;
+        } else {
+            $idList = array_filter(array_map('trim', explode(',', (string) $ids)));
+        }
+
+        $names = [];
+        foreach ($idList as $id) {
+            if ($id === '' || $id === null) {
+                continue;
+            }
+            $names[] = $map[$id] ?? $map[(int) $id] ?? (string) $id;
+        }
+
+        return implode(', ', $names);
     }
 
     public function editAstrologer(Request $req)

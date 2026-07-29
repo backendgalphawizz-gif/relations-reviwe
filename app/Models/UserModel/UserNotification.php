@@ -13,6 +13,7 @@ class UserNotification extends Model
         'userId',
         'title',
         'description',
+        'image',
         'notificationId',
         'createdBy',
         'modifiedBy'

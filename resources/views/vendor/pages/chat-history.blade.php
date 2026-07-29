@@ -47,7 +47,7 @@
                                 <tfoot>
                                     <tr>
                                         <th colspan="7">
-                                            {!! $chathistories->links() !!}
+                                            {!! $chathistories->links('vendor.pagination.advisor') !!}
                                         </th>
                                     </tr>
                                 </tfoot>

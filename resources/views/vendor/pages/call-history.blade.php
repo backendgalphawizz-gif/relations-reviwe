@@ -52,9 +52,9 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <th colspan="7">
-                                            {!! $callhistories->links() !!}
-                                        </th>
+                                        <td colspan="9">
+                                            {!! $callhistories->links('vendor.pagination.advisor') !!}
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>

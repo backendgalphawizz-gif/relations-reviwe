@@ -1082,6 +1082,11 @@ class UserController extends Controller
             $user = Auth::guard('api')->user();
             $deviceId = $req->input('deviceId')
                 ?? (is_array($req->userDeviceDetails) ? ($req->userDeviceDetails['deviceId'] ?? null) : null);
+            $appId = $req->input('appId')
+                ?? (is_array($req->userDeviceDetails) ? ($req->userDeviceDetails['appId'] ?? null) : null);
+            $fcmToken = $req->input('fcmToken')
+                ?? $req->input('fcm_token')
+                ?? (is_array($req->userDeviceDetails) ? ($req->userDeviceDetails['fcmToken'] ?? null) : null);
 
             try {
                 JWTAuth::invalidate(JWTAuth::getToken());
@@ -1089,7 +1094,17 @@ class UserController extends Controller
                 // Token may already be invalid; still clear server session
             }
 
-            UserAuthSessionService::endSession($user, $deviceId);
+            if (!empty($fcmToken)) {
+                UserDeviceDetail::where('userId', $user->id)
+                    ->where('fcmToken', $fcmToken)
+                    ->update([
+                        'fcmToken' => '',
+                        'isActive' => 0,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            UserAuthSessionService::endSession($user, $deviceId, $appId);
 
             Auth::guard('api')->logout();
 

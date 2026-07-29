@@ -22,9 +22,19 @@ class RedirectIfAuthenticated
         $guards = empty($guards) ? [null] : $guards;
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                if ($guard === 'advisor') {
+                    return redirect()->route('advisor.dashboard');
+                }
+
                 return redirect(RouteServiceProvider::HOME);
             }
         }
-        return $next($request);
+
+        $response = $next($request);
+
+        // Prevent browser from showing cached login after back button
+        return $response->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 }

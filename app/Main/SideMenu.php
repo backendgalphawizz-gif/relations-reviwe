@@ -103,7 +103,7 @@ class SideMenu
                 'icon' => 'video',
                 'route_name' => 'adsVideos',
                 'params' => "",
-                'title' => 'Videos Ads',
+                'title' => 'Videos Testimonials',
             ],
 
             'ticket' => [

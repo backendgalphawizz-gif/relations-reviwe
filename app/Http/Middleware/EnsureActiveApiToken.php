@@ -19,6 +19,7 @@ class EnsureActiveApiToken
         'api/sendOtp',
         'api/verifyOtp',
         'api/user/add',
+        'api/getAstrologerById',
         'api/refresh',
         'api/password/reset',
         'api/optimize-clear',

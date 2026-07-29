@@ -34,7 +34,7 @@
                         </div>
                     </div>
                     <div class="col-lg-12 otp-field d-none" style="display: center;">
-                        <button class="pull-right mt-2 btn-sm btn btn-primary btn-submit py-2 px4 w-full xl:w-32 align-top">Verify OTP</button>
+                        <button type="submit" class="pull-right mt-2 btn-sm btn btn-primary btn-submit py-2 px4 w-full xl:w-32 align-top">Verify OTP</button>
                     </div>
                     <div class="col-lg-12 mt-2">
                         <hr>
@@ -76,66 +76,9 @@
 
 @push('script')
 <script>
-    const appVersion = navigator.appVersion;
-
-    // Detect common operating systems based on appVersion string
-    let osName = "Unknown OS";
-    if (appVersion.includes("Win")) {
-        osName = "Windows";
-    } else if (appVersion.includes("Mac")) {
-        osName = "macOS";
-    } else if (appVersion.includes("X11") || appVersion.includes("Linux")) {
-        osName = "UNIX/Linux";
-    }
-
-
-
-    // Get user agent string
-    const userAgent = navigator.userAgent;
-    var spinner = $('.loader')
-
     setTimeout(() => {
         $('.loader').hide()
     }, 2000);
-
-    $(document).on('submit', '#advisor-login', function(e) {
-        e.preventDefault()
-
-        let formData = new FormData(this)
-        formData.append('appVersion', appVersion)
-        formData.append('osName', osName)
-        formData.append('userAgent', userAgent)
-        formData.append('appId', 3)
-
-        $.ajax({
-            type: $(this).attr('method'),
-            url: $(this).attr('action'),
-            data: formData,
-            dataType: "json",
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.status) {
-                    toastr.success(response.message)
-                    setTimeout(() => {
-                        window.location.href = "{{ route('advisor.dashboard') }}"
-                    }, 1000)
-                } else {
-                    if (response.error.length > 0) {
-                        $.each(response.error, function(ind, elm) {
-                            toastr.error(elm[0])
-                        })
-                    } else {
-                        toastr.error(response.message)
-                    }
-                }
-            },
-            error: function(jqxhr, err, errthrown) {
-
-            }
-        });
-
-    })
 
     $(document).on('click', '.send-otp', function() {
         let mobile = $('[name=mobile]').val()
@@ -152,37 +95,22 @@
                 if (response.status) {
                     $('.send-otp').text('Resend OTP')
                     $('.otp-field').removeClass('d-none')
-
                     toastr.success(response.message)
                 } else {
                     toastr.error(response.message)
                 }
             },
-            error: function(jqhr, errorText, throwError) {
-                toastr.error(jqhr.responseJSON.message)
+            error: function(jqhr) {
+                toastr.error(jqhr.responseJSON?.message || 'Failed to send OTP')
             }
         })
-
     })
 </script>
 
 <script type="module">
-    // Import the functions you need from the SDKs you need
-    import {
-        initializeApp
-    } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    // import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-analytics.js";
-    import {
-        getMessaging,
-        getToken,
-        onMessage
-    } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js";
 
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
-
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
         apiKey: "AIzaSyAbVv-H2kbOH1REQ2ggNc7xxg0Bh9LfT28",
         authDomain: "realtionship-849b1.firebaseapp.com",
@@ -194,40 +122,96 @@
         measurementId: "G-2QD0G6R41N"
     };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const messaging = getMessaging(app)
+    const VAPID_KEY = "BCzv6CBSKQZ7v9YjUuzJj_brefX2mmEB1g_ZAZ9Z4urRJ5SB2Kjj6Ah05SeWg-vZEZnaAe-LfuaaMmNz87iYGFY";
 
-    // Request permission for notifications
-    async function requestPermission() {
-        const permission = await Notification.requestPermission()
-        if (permission === "granted") {
-            const token = await getToken(messaging, {
-                vapidKey: "BCzv6CBSKQZ7v9YjUuzJj_brefX2mmEB1g_ZAZ9Z4urRJ5SB2Kjj6Ah05SeWg-vZEZnaAe-LfuaaMmNz87iYGFY" // from Firebase Cloud Messaging settings
-            })
-
-            $('[name=fcm_token]').val(token)
-
-            console.log('token 0000000000000000000', token)
-
-            // Send this token to your backend server to send notifications later
-        } else {
-            console.log("Permission denied")
-        }
+    function canUseWebPush() {
+        return window.isSecureContext === true
+            && 'Notification' in window
+            && 'serviceWorker' in navigator;
     }
 
-    requestPermission()
+    async function obtainFcmToken() {
+        if (!canUseWebPush()) {
+            console.warn('Web push needs HTTPS or localhost. Current origin cannot register FCM.');
+            return '';
+        }
 
-    // Handle foreground messages
-    onMessage(messaging, (payload) => {
-        console.log("Message received in foreground:", payload)
-        new Notification(payload.notification.title, {
-            body: payload.notification.body,
-            icon: payload.data.image
+        let permission = Notification.permission;
+        if (permission === 'default') {
+            permission = await Notification.requestPermission();
+        }
+        if (permission !== 'granted') {
+            console.warn('Notification permission not granted');
+            return '';
+        }
+
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        await navigator.serviceWorker.ready;
+
+        const app = initializeApp(firebaseConfig);
+        const messaging = getMessaging(app);
+        const token = await getToken(messaging, {
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
         });
 
-        // playAudio()
+        if (token) {
+            $('[name=fcm_token]').val(token);
+            console.log('Advisor web FCM token ready');
+        }
+        return token || '';
+    }
+
+    if (canUseWebPush() && Notification.permission === 'granted') {
+        obtainFcmToken().catch((e) => console.warn('FCM prefetch failed', e));
+    }
+
+    $('#advisor-login').on('submit', async function(e) {
+        e.preventDefault();
+
+        try {
+            await obtainFcmToken();
+        } catch (err) {
+            console.warn('FCM before login failed', err);
+        }
+
+        const formData = new FormData(this);
+        const appVersion = navigator.appVersion;
+        let osName = 'Unknown OS';
+        if (appVersion.includes('Win')) osName = 'Windows';
+        else if (appVersion.includes('Mac')) osName = 'macOS';
+        else if (appVersion.includes('X11') || appVersion.includes('Linux')) osName = 'UNIX/Linux';
+
+        formData.append('appVersion', appVersion);
+        formData.append('osName', osName);
+        formData.append('userAgent', navigator.userAgent);
+        formData.append('appId', 3);
+
+        $.ajax({
+            type: $(this).attr('method'),
+            url: $(this).attr('action'),
+            data: formData,
+            dataType: 'json',
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status) {
+                    toastr.success(response.message);
+                    setTimeout(() => {
+                        window.location.replace("{{ route('advisor.dashboard') }}");
+                    }, 1000);
+                } else if (response.error && response.error.length > 0) {
+                    $.each(response.error, function(ind, elm) {
+                        toastr.error(elm[0]);
+                    });
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function() {
+                toastr.error('Login failed. Please try again.');
+            }
+        });
     });
 </script>
-
 @endpush

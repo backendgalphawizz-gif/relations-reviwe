@@ -14,7 +14,7 @@
 
     <div class="loader"></div>
 
-    <h2 class="intro-y text-lg font-medium mt-10">Adviser Review</h2>
+    <h2 class="intro-y text-lg font-medium mt-10">Advisor Review</h2>
 
 
 

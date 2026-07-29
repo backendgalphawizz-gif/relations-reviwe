@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserModel\WaitList;
+use App\Services\WaitListService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\services\FCMService;
@@ -31,6 +32,12 @@ class WaitListController extends Controller
                 ->SELECT('user_device_details.*')
                 ->get();
 
+            $advisorCallStatus = DB::table('astrologers')
+                ->where('id', $req->astrologerId)
+                ->value('callStatus');
+            $advisorIsOnline = strcasecmp((string) $advisorCallStatus, 'Online') === 0;
+
+            // Call-related waitlist pushes only when advisor is Online
             if ($req->requestType == 'Chat') {
 
                 if ($userDeviceDetail && count($userDeviceDetail) > 0) {
@@ -46,7 +53,7 @@ class WaitListController extends Controller
                     );
                 }
             }
-            if ($req->requestType == 'Audio') {
+            if ($advisorIsOnline && $req->requestType == 'Audio') {
                 if ($userDeviceDetail && count($userDeviceDetail) > 0) {
                     FCMService::send(
                         $userDeviceDetail,
@@ -60,7 +67,7 @@ class WaitListController extends Controller
                     );
                 }
             }
-            if ($req->requestType == 'Video') {
+            if ($advisorIsOnline && $req->requestType == 'Video') {
                 if ($userDeviceDetail && count($userDeviceDetail) > 0) {
                     FCMService::send(
                         $userDeviceDetail,
@@ -144,6 +151,42 @@ class WaitListController extends Controller
                 'status' => 200,
             ], 200);
         } catch (\Exception$e) {
+            return response()->json([
+                'error' => false,
+                'message' => $e->getMessage(),
+                'status' => 500,
+            ], 500);
+        }
+    }
+
+    /**
+     * Manually notify the next waiting user for an advisor (FIFO).
+     * Body: astrologerId (required), requestType (optional: Chat|Audio|Video)
+     */
+    public function notifyNext(Request $req)
+    {
+        try {
+            if (empty($req->astrologerId)) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'astrologerId is required',
+                    'status' => 400,
+                ], 400);
+            }
+
+            $notified = WaitListService::notifyNextWaitingUser(
+                $req->astrologerId,
+                $req->requestType
+            );
+
+            return response()->json([
+                'message' => $notified
+                    ? 'Next waitlist user notified'
+                    : 'No waiting user found for this advisor',
+                'recordList' => $notified,
+                'status' => 200,
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => false,
                 'message' => $e->getMessage(),

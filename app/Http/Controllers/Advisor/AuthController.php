@@ -17,10 +17,14 @@ use App\Models\UserRole;
 use App\Models\AstrologerModel\AstrologerCategory;
 use App\Models\AstrologerModel\Skill;
 use App\Models\UserModel\UserDeviceDetail;
+use App\Models\UserModel\User as ApiUser;
 use App\Models\AdminModel\SystemFlag;
 use App\Models\AdminModel\Language;
 use App\Models\AstrologerModel\Astrologer;
 use App\Models\AstrologerModel\AstrologerAvailability;
+use App\Services\AdminNotifyService;
+use App\Services\SmsService;
+use App\Services\UserAuthSessionService;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
@@ -32,16 +36,32 @@ class AuthController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index(){
-        return view('vendor.auth.login');
+        if (Auth::guard('advisor')->check()) {
+            return redirect()->route('advisor.dashboard');
+        }
+
+        return response()
+            ->view('vendor.auth.login')
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
     public function signup(){
+        if (Auth::guard('advisor')->check()) {
+            return redirect()->route('advisor.dashboard');
+        }
+
         $astrologerCategoryIds = AstrologerCategory::get();
         $primarySkills = Skill::get();
 
         $values = explode(',', SystemFlag::where('name', 'Language')->first()->value);
 
         $languageKnowns = Language::whereIn('id', $values)->get();
-        return view('vendor.auth.sign-up' ,compact('astrologerCategoryIds', 'primarySkills', 'languageKnowns'));
+        return response()
+            ->view('vendor.auth.sign-up', compact('astrologerCategoryIds', 'primarySkills', 'languageKnowns'))
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 
     public function sendOtp(Request $request) {
@@ -51,7 +71,7 @@ class AuthController extends Controller
 
         $mobile = $request->input('mobile');
         
-        $otp = rand(1111, 9999);
+        $otp = (string) rand(1111, 9999);
         $user = User::whereHas('astrologer')->where('contactNo', $mobile)->first();
 
 
@@ -62,10 +82,33 @@ class AuthController extends Controller
             }
 
             session()->put('otp', $otp);
-            return response()->json(['status' => true, 'message' => 'OTP sent success (OTP: '. $otp .')']);
+            session()->put('otp_mobile', $mobile);
+            session()->put('otp_expires_at', now()->addMinutes(10)->timestamp);
+
+            $sms = SmsService::sendLoginOtp((string) $mobile, $otp);
+
+            if (!$sms['ok']) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to send OTP SMS. Please try again.',
+                    'smsResponse' => $sms['response'],
+                ]);
+            }
+
+            // Do not expose OTP in production message; still return for local debug if needed
+            $payload = [
+                'status' => true,
+                'message' => 'OTP sent successfully to your mobile number',
+            ];
+            if (config('app.debug')) {
+                $payload['otp'] = $otp;
+            }
+
+            return response()->json($payload);
         }
         return response()->json(['status' => false, 'message' => 'Invalid mobile number']);
     }
+
     public function signupOtp(Request $request) {
         $request->validate([
             'name' => 'required|min:3|max:25',
@@ -74,9 +117,32 @@ class AuthController extends Controller
         ]);
 
         $mobile = $request->input('mobile');
-        $otp = rand(1111, 9999);
+        $otp = (string) rand(1111, 9999);
 
-        return response()->json(['status' => true, 'message' => 'OTP sent success (OTP: '. $otp .')', 'otp' => $otp, 'mobile' => $mobile]);
+        session()->put('otp', $otp);
+        session()->put('otp_mobile', $mobile);
+        session()->put('otp_expires_at', now()->addMinutes(10)->timestamp);
+
+        $sms = SmsService::sendLoginOtp((string) $mobile, $otp);
+        if (!$sms['ok']) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to send OTP SMS. Please try again.',
+                'smsResponse' => $sms['response'],
+                'mobile' => $mobile,
+            ]);
+        }
+
+        $payload = [
+            'status' => true,
+            'message' => 'OTP sent successfully to your mobile number',
+            'mobile' => $mobile,
+        ];
+        if (config('app.debug')) {
+            $payload['otp'] = $otp;
+        }
+
+        return response()->json($payload);
     }
 
     public function authenticate(Request $request) {
@@ -93,41 +159,75 @@ class AuthController extends Controller
             ], 200);
         }
         $sessionOTP = session()->get('otp');
+        $otpExpiresAt = session()->get('otp_expires_at');
+        $otpMobile = session()->get('otp_mobile');
         $user = User::whereHas('astrologer')
             ->where('contactNo', $request->mobile)
             ->first();
+
+        if ($otpExpiresAt && now()->timestamp > (int) $otpExpiresAt) {
+            return response()->json([
+                'status' => false,
+                'message' => 'OTP expired. Please request a new OTP.',
+            ], 200);
+        }
+
+        if ($otpMobile && (string) $otpMobile !== (string) $request->mobile) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Mobile number does not match the OTP request.',
+            ], 200);
+        }
 
         if ($sessionOTP == $request->otp && $user) {
             Auth::guard('web')->logout();
             Auth::guard('advisor')->login($user);
 
-            $user->desktop_token = $request->fcm_token;
-            $user->save();
+            // One device at a time: clear previous mobile + web tokens/FCM
+            $apiUser = ApiUser::find($user->id);
+            if ($apiUser) {
+                UserAuthSessionService::invalidateApiSessionForWebLogin($apiUser);
+            }
 
             $userId = $user->id;
             $appVersion = $request->input('appVersion');
             $osName = $request->input('osName');
             $userAgent = $request->input('userAgent');
-            $appId = $request->input('appId');
-            $fcmToken = $request->input('fcm_token');
+            $appId = $request->input('appId') ?: 3;
+            $fcmToken = trim((string) $request->input('fcm_token', ''));
 
-            UserDeviceDetail::where('fcmToken', $fcmToken)->update(['fcmToken' => '']);
+            if ($fcmToken !== '') {
+                // Ensure this FCM is not attached to any other user/device
+                UserDeviceDetail::where('fcmToken', $fcmToken)->update(['fcmToken' => '']);
+            }
 
+            // After wipe, create/refresh ONLY this web device
             $userDevice = UserDeviceDetail::where(['userId' => $userId, 'appId' => $appId])->first();
-            if(!$userDevice) {
+            if (!$userDevice) {
                 $userDevice = new UserDeviceDetail;
             }
 
             $userDevice->userId = $userId;
             $userDevice->appId = $appId;
-            $userDevice->fcmToken = $fcmToken;
+            $userDevice->fcmToken = $fcmToken !== '' ? $fcmToken : '';
             $userDevice->deviceId = $userAgent;
             $userDevice->deviceManufacturer = $osName;
             $userDevice->deviceModel = $appVersion;
             $userDevice->appVersion = '1.1.0';
+            $userDevice->isActive = 1;
             $userDevice->save();
 
+            $freshUser = ApiUser::find($userId);
+            if ($freshUser) {
+                $freshUser->desktop_token = $fcmToken !== '' ? $fcmToken : null;
+                $freshUser->token = null;
+                $freshUser->fcm_token = null;
+                $freshUser->save();
+            }
+
             session()->forget('otp');
+            session()->forget('otp_mobile');
+            session()->forget('otp_expires_at');
 
             return response()->json([
                 'status' => true,
@@ -200,10 +300,35 @@ class AuthController extends Controller
      */
     public function logout()
     {
+        $user = Auth::guard('advisor')->user();
+        if ($user) {
+            $apiUser = ApiUser::find($user->id);
+            if ($apiUser) {
+                UserAuthSessionService::endWebSession($apiUser);
+            } else {
+                // Fallback: clear web device + desktop token directly
+                DB::table('user_device_details')
+                    ->where('userId', $user->id)
+                    ->where('appId', 3)
+                    ->update([
+                        'isActive' => 0,
+                        'fcmToken' => '',
+                        'updated_at' => now(),
+                    ]);
+                DB::table('users')->where('id', $user->id)->update([
+                    'desktop_token' => null,
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         Auth::guard('advisor')->logout();
         Auth::guard('web')->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
         session()->forget('token');
         session()->forget('otp');
+
         return redirect()->route('advisor.login');
     }
 
@@ -367,6 +492,13 @@ class AuthController extends Controller
             }
 
             DB::commit();
+
+            AdminNotifyService::notifyNewAdvisorRequest(
+                (string) $req->name,
+                (int) $astrologer->id,
+                (int) $user->id
+            );
+
             return response()->json([
                 'message' => 'Registered successfully',
                 'status' => true

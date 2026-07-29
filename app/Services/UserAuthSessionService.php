@@ -7,12 +7,12 @@ use App\Models\UserModel\UserDeviceDetail;
 use App\Models\UserModel\UserLoginHistory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class UserAuthSessionService
 {
     /**
-     * Activate a new login session: expire other devices' tokens/sessions and log history.
+     * Activate a new login session.
+     * Clears previous devices' auth activity + FCM so only the new device stays active.
      */
     public static function startSession(User $user, string $token, Request $request, ?array $deviceDetails = null): UserLoginHistory
     {
@@ -20,8 +20,7 @@ class UserAuthSessionService
         $appId = $deviceDetails['appId'] ?? $request->input('appId');
         $now = Carbon::now();
 
-        DB::table('user_login_histories')
-            ->where('userId', $user->id)
+        UserLoginHistory::where('userId', $user->id)
             ->where('status', 'active')
             ->update([
                 'status' => 'forced_logout',
@@ -29,28 +28,33 @@ class UserAuthSessionService
                 'updated_at' => $now,
             ]);
 
-        $otherDevices = UserDeviceDetail::where('userId', $user->id);
-        if (!empty($deviceId)) {
-            $otherDevices->where(function ($q) use ($deviceId) {
-                $q->where('deviceId', '!=', $deviceId)->orWhereNull('deviceId');
-            });
-        }
-        $otherDevices->update([
+        // Wipe every previous device (mobile + web) — token/FCM must not stay on old devices
+        UserDeviceDetail::where('userId', $user->id)->update([
             'isActive' => 0,
+            'fcmToken' => '',
             'updated_at' => $now,
         ]);
 
         if (!empty($deviceDetails)) {
-            $existing = UserDeviceDetail::where('userId', $user->id)
-                ->when(!empty($deviceId), fn ($q) => $q->where('deviceId', $deviceId))
-                ->when(!empty($appId), fn ($q) => $q->where('appId', $appId))
-                ->first();
+            $existing = null;
+            if (!empty($appId)) {
+                $existing = UserDeviceDetail::where('userId', $user->id)
+                    ->where('appId', $appId)
+                    ->orderByDesc('id')
+                    ->first();
+            }
+            if (!$existing && !empty($deviceId)) {
+                $existing = UserDeviceDetail::where('userId', $user->id)
+                    ->where('deviceId', $deviceId)
+                    ->orderByDesc('id')
+                    ->first();
+            }
 
             $payload = [
                 'userId' => $user->id,
                 'appId' => $deviceDetails['appId'] ?? $appId ?? 1,
                 'deviceId' => $deviceDetails['deviceId'] ?? $deviceId,
-                'fcmToken' => $deviceDetails['fcmToken'] ?? null,
+                'fcmToken' => $deviceDetails['fcmToken'] ?? '',
                 'deviceLocation' => $deviceDetails['deviceLocation'] ?? '',
                 'deviceManufacturer' => $deviceDetails['deviceManufacturer'] ?? null,
                 'deviceModel' => $deviceDetails['deviceModel'] ?? null,
@@ -69,11 +73,23 @@ class UserAuthSessionService
         } elseif (!empty($deviceId)) {
             UserDeviceDetail::where('userId', $user->id)
                 ->where('deviceId', $deviceId)
-                ->update(['isActive' => 1, 'updated_at' => $now]);
+                ->update([
+                    'isActive' => 1,
+                    'updated_at' => $now,
+                ]);
         }
 
         $user->token = $token;
         $user->expirationDate = $now->copy()->addMonth();
+
+        // App login replaces web push token so previous web panel stops getting calls
+        if ((int) ($deviceDetails['appId'] ?? $appId ?? 0) !== 3) {
+            $user->desktop_token = null;
+            if (!empty($deviceDetails['fcmToken'])) {
+                $user->fcm_token = $deviceDetails['fcmToken'];
+            }
+        }
+
         $user->save();
 
         return UserLoginHistory::create([
@@ -93,9 +109,39 @@ class UserAuthSessionService
     }
 
     /**
-     * End current session on logout.
+     * Advisor web panel login: clear ALL previous sessions (mobile + other browsers).
      */
-    public static function endSession(User $user, ?string $deviceId = null): void
+    public static function invalidateApiSessionForWebLogin(User $user): void
+    {
+        $now = Carbon::now();
+
+        UserLoginHistory::where('userId', $user->id)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'forced_logout',
+                'logout_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+        UserDeviceDetail::where('userId', $user->id)->update([
+            'isActive' => 0,
+            'fcmToken' => '',
+            'updated_at' => $now,
+        ]);
+
+        $user->token = null;
+        $user->expirationDate = null;
+        $user->fcm_token = null;
+        $user->desktop_token = null;
+        $user->save();
+    }
+
+    /**
+     * End current session on logout — clears auth + FCM tokens.
+     *
+     * @param  int|string|null  $appId
+     */
+    public static function endSession(User $user, ?string $deviceId = null, $appId = null): void
     {
         $now = Carbon::now();
 
@@ -103,24 +149,46 @@ class UserAuthSessionService
         if (!empty($deviceId)) {
             $query->where('deviceId', $deviceId);
         }
+        if ($appId !== null && $appId !== '') {
+            $query->where('appId', $appId);
+        }
         $query->update([
             'status' => 'logout',
             'logout_at' => $now,
             'updated_at' => $now,
         ]);
 
+        $deviceQuery = UserDeviceDetail::where('userId', $user->id);
         if (!empty($deviceId)) {
-            UserDeviceDetail::where('userId', $user->id)
-                ->where('deviceId', $deviceId)
-                ->update(['isActive' => 0, 'updated_at' => $now]);
-        } else {
-            UserDeviceDetail::where('userId', $user->id)
-                ->where('isActive', 1)
-                ->update(['isActive' => 0, 'updated_at' => $now]);
+            $deviceQuery->where('deviceId', $deviceId);
+        }
+        if ($appId !== null && $appId !== '') {
+            $deviceQuery->where('appId', $appId);
         }
 
-        $user->token = null;
-        $user->expirationDate = null;
+        $deviceQuery->update([
+            'isActive' => 0,
+            'fcmToken' => '',
+            'updated_at' => $now,
+        ]);
+
+        $isWebOnly = $appId !== null && $appId !== '' && (int) $appId === 3;
+
+        if (!$isWebOnly) {
+            $user->token = null;
+            $user->expirationDate = null;
+            $user->fcm_token = null;
+        }
+
+        if ($isWebOnly || $appId === null || $appId === '') {
+            $user->desktop_token = null;
+        }
+
         $user->save();
+    }
+
+    public static function endWebSession(User $user): void
+    {
+        self::endSession($user, null, 3);
     }
 }

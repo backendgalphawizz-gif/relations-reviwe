@@ -12,7 +12,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Laravel 10.0 does not support everyTenSeconds(); run every minute.
+        // The command itself polls every 10s within that minute for ~30s ring timeouts.
+        $schedule->command('calls:advance-pending-rings')
+            ->everyMinute()
+            ->withoutOverlapping();
     }
 
     /**

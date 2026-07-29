@@ -23,32 +23,50 @@
                 <thead class="sticky-top">
                     <tr>
                         <th class="whitespace-nowrap">#</th>
+                        <th class="whitespace-nowrap">IMAGE</th>
                         <th class="whitespace-nowrap">TITLE</th>
                         <th class="whitespace-nowrap">DESCRIPTION</th>
+                        <th class="whitespace-nowrap">SEND TO</th>
                         <th class="text-center whitespace-nowrap">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $no = 0;
-                    @endphp
+                    @php $no = 0; @endphp
                     @foreach ($notifications as $notification)
                         <tr class="intro-x">
                             <td>{{ ($page - 1) * 15 + ++$no }}</td>
-                            <td>{{ $notification['title'] }}</td>
-                            <td>{!! $notification['description'] !!}</td>
-
+                            <td>
+                                @if (!empty($notification->image))
+                                    <img src="{{ asset($notification->image) }}" alt="notification"
+                                        style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td>{{ $notification->title }}</td>
+                            <td>{!! $notification->description !!}</td>
+                            <td>
+                                <div class="font-medium whitespace-nowrap">{{ $notification->sendToLabel() }}</div>
+                                @if (in_array($notification->send_to, ['single_customer', 'single_advisor'], true))
+                                    @php
+                                        $ids = $notification->sendToUserIds();
+                                        $names = collect($ids)->map(fn ($id) => $userNamesById[$id] ?? ('#'.$id))->filter()->implode(', ');
+                                    @endphp
+                                    @if ($names)
+                                        <div class="text-slate-500 text-xs mt-1">{{ $names }}</div>
+                                    @endif
+                                @endif
+                            </td>
                             <td class="table-report__action w-56">
                                 <div class="flex justify-center items-center">
-                                    <a id="editbtn" data-tw-toggle="modal" style="cursor: pointer"
+                                    <a href="javascript:;" data-tw-toggle="modal" style="cursor: pointer"
                                         data-tw-target="#edit-modal"
-                                        onclick="editbtn({{ $notification['id'] }},'{{ $notification['title'] }}', '{{ $notification['description'] }}')"
-                                       class="flex items-center mr-3 "><i data-lucide="check-square"
+                                        onclick="editbtn({{ $notification->id }}, @js($notification->title), @js($notification->description), @js($notification->image))"
+                                        class="flex items-center mr-3"><i data-lucide="check-square"
                                             class="w-4 h-4"></i>Edit</a>
-
-                                    <a id="editbtn" href="javascript:;"
-                                        onclick="send({{ $notification['id'] }});document.getElementById('notification-form').reset();"
-                                        value="{{ $notification['id'] }}" class="flex items-center"
+                                    <a href="javascript:;"
+                                        onclick="send({{ $notification->id }});"
+                                        class="flex items-center"
                                         data-tw-target="#send-notification-modal" data-tw-toggle="modal"><i
                                             data-lucide="share-2" class="editbtn w-4 h-4 mr-1"></i>Send</a>
                                 </div>
@@ -95,6 +113,7 @@
         </div>
     @endif
     <!-- END: Data List -->
+
     <div id="add-notification" class="modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog" style="width:760px">
             <div class="modal-content">
@@ -103,28 +122,62 @@
                     <button type="button" class="btn btn-danger" data-tw-dismiss="modal">Close</button>
                 </div>
                 <div class="modal-body">
-                    <form action="{{ route('addNotificationApi') }}" method="POST" enctype="multipart/form-data" id="add-notification-form">
+                    <form action="{{ route('addNotificationApi') }}" method="POST" enctype="multipart/form-data"
+                        id="add-notification-form">
                         @csrf
-                        <div id="input" class="p-5">
-                            <div class="preview">
-                                <div class="mt-3">
-                                    <div class="sm:grid grid-cols gap-2">
-                                        <div class="input">
-                                            <div>
-                                                <label for="title" class="form-label">Title</label>
-                                                <input type="text" name="title" id="title" class="form-control"
-                                                    placeholder="Title" required onkeypress="return Validate(event);">
-                                            </div>
-                                        </div>
-                                        <div class="input" id="classic-editor">
-                                            <label for="description" class="from-label">Description</label>
-                                            <textarea onkeypress="return validateJavascript(event);" class="form-control" id="description" name="description" required></textarea>
-                                        </div>
-                                        <div class="mt-5"><button type="submit" class="btn btn-primary shadow-md mr-2">Add
-                                                Notification</button>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="p-5">
+                            <div class="mt-3">
+                                <label for="title" class="form-label">Title</label>
+                                <input type="text" name="title" id="title" class="form-control"
+                                    placeholder="Title" required>
+                            </div>
+                            <div class="mt-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label for="image" class="form-label">Image (optional)</label>
+                                <input type="file" name="image" id="image" class="form-control"
+                                    accept="image/*">
+                            </div>
+
+                            <hr class="my-4">
+                            <h3 class="font-medium mb-2">Who should receive this?</h3>
+
+                            <div class="mt-3">
+                                <label class="form-label">Send To</label>
+                                <select class="form-control" id="add_send_to" name="send_to" onchange="toggleAddSendTo()">
+                                    <option value="all" selected>All (Customers + Advisors)</option>
+                                    <option value="all_customers">All Customers</option>
+                                    <option value="single_customer">Single / Select Customer</option>
+                                    <option value="all_advisors">All Advisors</option>
+                                    <option value="single_advisor">Single / Select Advisor</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-3" id="add-customer-wrap" style="display:none;">
+                                <label class="form-label">Select Customer</label>
+                                <select name="userIds[]" class="form-control" id="add_customers">
+                                    <option value="">-- Select Customer --</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-3" id="add-advisor-wrap" style="display:none;">
+                                <label class="form-label">Select Advisor</label>
+                                <select name="userIds[]" class="form-control" id="add_advisors">
+                                    <option value="">-- Select Advisor --</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="send_now" name="send_now" value="1" checked>
+                                <label class="form-check-label" for="send_now">
+                                    Send now after saving (uncheck to only save template, then use Send later)
+                                </label>
+                            </div>
+
+                            <div class="mt-5">
+                                <button type="submit" class="btn btn-primary shadow-md mr-2">Save &amp; Send</button>
                             </div>
                         </div>
                     </form>
@@ -140,31 +193,29 @@
                     <h2 class="font-medium text-base mr-auto">Edit Notification</h2>
                     <button type="button" class="btn btn-danger" data-tw-dismiss="modal">Close</button>
                 </div>
-                <form action="{{ route('editNotificationApi') }}" method="POST" enctype="multipart/form-data" id="edit-notification-form">
+                <form action="{{ route('editNotificationApi') }}" method="POST" enctype="multipart/form-data"
+                    id="edit-notification-form">
                     @csrf
-                    <div id="input" class="p-5">
-                        <div class="preview">
-                            <div class="mt-3">
-                                <div class="sm:grid grid-cols gap-2">
-                                    <div class="input">
-                                        <div>
-                                            <input type="hidden" id="filed_id" name="filed_id">
-                                            <label for="title" class="form-label">Title</label>
-                                            <input type="text" name="title" id="id" class="form-control"
-                                                placeholder="Title" required onkeypress="return Validate(event);">
-                                        </div>
-                                    </div>
-                                    <div class="input">
-                                        <div>
-                                            <label for="description" class="form-label">Description</label>
-                                            <textarea onkeypress="return validateJavascript(event);" type="text" name="did" id="did" class="form-control" required></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-5 "><button class="btn btn-primary shadow-md mr-2"
-                                    id="btn">Save</button>
-                            </div>
+                    <div class="p-5">
+                        <input type="hidden" id="filed_id" name="filed_id">
+                        <div class="mt-3">
+                            <label for="id" class="form-label">Title</label>
+                            <input type="text" name="title" id="id" class="form-control"
+                                placeholder="Title" required>
+                        </div>
+                        <div class="mt-3">
+                            <label for="did" class="form-label">Description</label>
+                            <textarea name="did" id="did" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label">Current Image</label>
+                            <div id="edit-image-preview" class="mb-2"></div>
+                            <label for="edit_image" class="form-label">Change Image (optional)</label>
+                            <input type="file" name="image" id="edit_image" class="form-control"
+                                accept="image/*">
+                        </div>
+                        <div class="mt-5">
+                            <button class="btn btn-primary shadow-md mr-2" id="btn">Save</button>
                         </div>
                     </div>
                 </form>
@@ -172,263 +223,286 @@
         </div>
     </div>
 
-    <!-- BEGIN: Delete Confirmation Modal -->
-    <div id="delete-confirmation-modal" class="modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-body p-0">
-                    <div class="p-5 text-center">
-                        <i data-lucide="x-circle" class="w-16 h-16  mx-auto mt-3"></i>
-
-                        <div class="text-3xl mt-5">Are you sure?</div>
-                        <div class="text-slate-500 mt-2">Do you really want to send these notification? </div>
-                    </div>
-
-                    <form action="{{ route('sendNotification') }} " method="POST">
-                        @csrf
-                        @method('Post')
-                        <input type="hidden" id="notification" name="notification_id">
-                        <div class="px-5 pb-8 text-center">
-                            <button type="button" data-tw-dismiss="modal"
-                                class="btn btn-outline-secondary w-24 mr-1">Cancel</button>
-                            <button class="btn btn-primary w-24">@method('Post')Send</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
     <div id="send-notification-modal" class="modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog" style="width:760px">
             <div class="modal-content">
                 <div class="modal-header">
                     <h2 class="font-medium text-base mr-auto">Send Notification</h2>
+                    <button type="button" class="btn btn-danger" data-tw-dismiss="modal">Close</button>
                 </div>
                 <form method="POST" enctype="multipart/form-data" id="notification-form">
                     @csrf
-                    <div id="input" class="p-5">
-                        <div class="preview">
-                            <div class="mt-3">
-                                <div class="sm:grid grid-cols gap-2">
-                                    <div class="preview">
-                                        <input type="hidden" id="roleIndex" name="role">
-                                        <label for="title" class="form-label">Select Role</label>
-                                        <select class="form-control" id="role" name="role" value="role">
-                                            <option disabled>--Select Role--</option>
-                                            <option id="userrole"selected>All</option>
-                                            <option id="userrole">User</option>
-                                            <option id="userrole">Adviser</option>
-                                        </select>
-                                    </div>
-                                    <div class="preview">
-                                        <input type="hidden" id="notification_id" name="notification_id">
-                                        <label for="title" class="form-label">Select User</label>
-                                        <select name="userIds[]" class="form-control select2" multiple
-                                            data-placeholder="Select User..." id="users">
-                                            
-                                        </select>
-                                    </div>
+                    <div class="p-5">
+                        <input type="hidden" id="notification_id" name="notification_id">
 
+                        <div class="mt-3">
+                            <label class="form-label">Send To</label>
+                            <select class="form-control" id="send_to" name="send_to" onchange="toggleSendTo()">
+                                <option value="all" selected>All (Customers + Advisors)</option>
+                                <option value="all_customers">All Customers</option>
+                                <option value="single_customer">Single / Select Customer</option>
+                                <option value="all_advisors">All Advisors</option>
+                                <option value="single_advisor">Single / Select Advisor</option>
+                            </select>
+                        </div>
 
-                                </div>
-                            </div>
-                            <div class="mt-5"><button type="submit"
-                                    class="btn-submit btn btn-primary shadow-md mr-2">Send
-                                    Notification</button>
-                            </div>
+                        <div class="mt-3" id="send-customer-wrap" style="display:none;">
+                            <label class="form-label">Select Customer</label>
+                            <select name="userIds[]" class="form-control" id="send_customers">
+                                <option value="">-- Select Customer --</option>
+                            </select>
+                        </div>
+
+                        <div class="mt-3" id="send-advisor-wrap" style="display:none;">
+                            <label class="form-label">Select Advisor</label>
+                            <select name="userIds[]" class="form-control" id="send_advisors">
+                                <option value="">-- Select Advisor --</option>
+                            </select>
+                        </div>
+
+                        <div class="mt-5">
+                            <button type="submit" class="btn-submit btn btn-primary shadow-md mr-2">Send
+                                Notification</button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    <!-- END: Delete Confirmation Modal -->
 @endsection
+
 @section('script')
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"  ></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"  ></script>
     <script type="text/javascript">
-        var $select = $('#users');
-        var users = {{ Js::from($users) }};
-        jQuery.each(users, function(index, option) {
-            $select.append('<option value="' + option.id + '">' + (option.name ? option.name : '') + '-' + option
-                .contactNo +
-                '</option>');
-        });
+        var allUsers = {{ Js::from($users ?? []) }};
+        if (!Array.isArray(allUsers)) {
+            allUsers = Object.keys(allUsers || {}).map(function(k) { return allUsers[k]; });
+        }
+        var spinner = jQuery('.loader');
 
-        var spinner = $('.loader');
-
-        function editbtn($id, $title, $description) {
-            var id = $id;
-            var did = $id;
-            $cid = id;
-
-            $('#filed_id').val($cid);
-            $('#id').val($title);
-            $('#did').val($description);
-
+        function fillRoleSelect(selectEl, roleId, placeholder) {
+            var $select = jQuery(selectEl);
+            $select.empty();
+            $select.append('<option value="">' + placeholder + '</option>');
+            (allUsers || []).forEach(function(option) {
+                if (String(option.roleId) !== String(roleId)) return;
+                var label = (option.name ? option.name : 'User') + ' - ' + (option.contactNo || '');
+                $select.append('<option value="' + option.id + '">' + label + '</option>');
+            });
         }
 
-        function Validate(event) {
-            var regex = new RegExp("^[0-9-!@#$%&<>*?]");
-            var key = String.fromCharCode(event.charCode ? event.which : event.charCode);
-            if (regex.test(key)) {
-                event.preventDefault();
-                return false;
+        function toggleAddSendTo() {
+            var mode = document.getElementById('add_send_to').value;
+            var customerWrap = document.getElementById('add-customer-wrap');
+            var advisorWrap = document.getElementById('add-advisor-wrap');
+            customerWrap.style.display = 'none';
+            advisorWrap.style.display = 'none';
+            document.getElementById('add_customers').value = '';
+            document.getElementById('add_advisors').value = '';
+
+            // Disable unused select so empty value is not submitted
+            document.getElementById('add_customers').disabled = true;
+            document.getElementById('add_advisors').disabled = true;
+
+            if (mode === 'single_customer') {
+                fillRoleSelect('#add_customers', 3, '-- Select Customer --');
+                document.getElementById('add_customers').disabled = false;
+                customerWrap.style.display = 'block';
+            } else if (mode === 'single_advisor') {
+                fillRoleSelect('#add_advisors', 2, '-- Select Advisor --');
+                document.getElementById('add_advisors').disabled = false;
+                advisorWrap.style.display = 'block';
             }
         }
 
-        function validateJavascript(event) {
-            var regex = new RegExp("^[<>]");
-            var key = String.fromCharCode(event.charCode ? event.which : event.charCode);
-            if (regex.test(key)) {
-                event.preventDefault();
-                return false;
+        function toggleSendTo() {
+            var mode = document.getElementById('send_to').value;
+            var customerWrap = document.getElementById('send-customer-wrap');
+            var advisorWrap = document.getElementById('send-advisor-wrap');
+            customerWrap.style.display = 'none';
+            advisorWrap.style.display = 'none';
+            document.getElementById('send_customers').value = '';
+            document.getElementById('send_advisors').value = '';
+            document.getElementById('send_customers').disabled = true;
+            document.getElementById('send_advisors').disabled = true;
+
+            if (mode === 'single_customer') {
+                fillRoleSelect('#send_customers', 3, '-- Select Customer --');
+                document.getElementById('send_customers').disabled = false;
+                customerWrap.style.display = 'block';
+            } else if (mode === 'single_advisor') {
+                fillRoleSelect('#send_advisors', 2, '-- Select Advisor --');
+                document.getElementById('send_advisors').disabled = false;
+                advisorWrap.style.display = 'block';
             }
         }
 
-        function editNotification($id, $name) {
-            var id = $id;
-            $fid = id;
-
-            $('#status_id').val($fid);
-            $('#id').val($name);
-        }
-
-        function send($id) {
-            $fid = $id;
-            $('#notification_id').val($fid);
-            $('#notification_id').val($fid);
-        }
-
-        $('#role').on('change', function() {
-            var roleUsers = [];
-            var select = $('#users');
-            $role = document.getElementById('role').value;
-            var users = {{ Js::from($users) }};
-            if ($role == 'User') {
-                roleUsers = users.filter(c => c.roleId == 3)
-            } else if ($role == 'Astrologer') {
-                roleUsers = users.filter(c => c.roleId == 2)
+        function editbtn(id, title, description, image) {
+            jQuery('#filed_id').val(id);
+            jQuery('#id').val(title);
+            jQuery('#did').val(description);
+            if (image) {
+                jQuery('#edit-image-preview').html('<img src="/' + image.replace(/^\/+/, '') +
+                    '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;">');
             } else {
-                roleUsers = users;
+                jQuery('#edit-image-preview').html('<span class="text-slate-400">No image</span>');
             }
-           jQuery('#users').empty();
-            jQuery.each(roleUsers, function(index, option) {
-                select.append('<option value="' + option.id + '">' + (option.name ? option.name : '') +
-                    '-' + option.contactNo +
-                    '</option>');
-            });
-        });
+        }
 
-        jQuery('#notification-form').submit(function(e) {
-            e.preventDefault();
-            spinner.show();
-            jQuery.ajax({
-                type: 'POST',
-                url: "{{ route('sendNotification') }}",
-                data: new FormData(this),
-                dataType: 'JSON',
-                processData: false,
-                contentType: false,
-                success: function(data) {
-                    if (jQuery.isEmptyObject(data.error)) {
-                        spinner.hide();
-                        location.reload();
-                    } else {
-                        printErrorMsg(data.error)
-                        spinner.hide();
-                    }
-                }
-            });
-        });
-        jQuery('#add-notification-form').submit(function(e) {
-            e.preventDefault();
-            spinner.show();
-            jQuery.ajax({
-                type: 'POST',
-                url: "{{ route('addNotificationApi') }}",
-                data: new FormData(this),
-                dataType: 'JSON',
-                processData: false,
-                contentType: false,
-                success: function(data) {
-                    if (jQuery.isEmptyObject(data.error)) {
+        function send(id) {
+            jQuery('#notification_id').val(id);
+            jQuery('#send_to').val('all');
+            toggleSendTo();
+        }
 
-                        toastr.success('Notification added successfully')
+        jQuery(function() {
+            toggleAddSendTo();
+            toggleSendTo();
 
-                        spinner.hide();
-                        location.reload();
-                    } else {
-                        spinner.hide();
-                        printErrorMsg(data.error)
-                    }
+            jQuery('#notification-form').submit(function(e) {
+                e.preventDefault();
+
+                var mode = jQuery('#send_to').val();
+                if (mode === 'single_customer' && !jQuery('#send_customers').val()) {
+                    toastr.error('Please select a customer');
+                    return;
                 }
+                if (mode === 'single_advisor' && !jQuery('#send_advisors').val()) {
+                    toastr.error('Please select an advisor');
+                    return;
+                }
+
+                spinner.show();
+                var formData = new FormData(this);
+                if (mode === 'all' || mode === 'all_customers' || mode === 'all_advisors') {
+                    formData.delete('userIds[]');
+                }
+
+                jQuery.ajax({
+                    type: 'POST',
+                    url: "{{ route('sendNotification') }}",
+                    data: formData,
+                    dataType: 'JSON',
+                    processData: false,
+                    contentType: false,
+                    timeout: 120000,
+                    success: function(data) {
+                        if (jQuery.isEmptyObject(data.error)) {
+                            toastr.success((data.success && data.success[0]) ? data.success[0] :
+                                'Notification sent successfully');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 500);
+                        } else {
+                            spinner.hide();
+                            printErrorMsg(data.error);
+                        }
+                    },
+                    error: function(xhr, status) {
+                        spinner.hide();
+                        toastr.error(status === 'timeout'
+                            ? 'Sending is taking too long. Please try again or send to a smaller group.'
+                            : 'Failed to send notification');
+                    },
+                    complete: function() {
+                        // keep loader only while reloading after success
+                    }
+                });
             });
-        });
-        jQuery('#edit-notification-form').submit(function(e) {
-            e.preventDefault();
-            spinner.show();
-            jQuery.ajax({
-                type: 'POST',
-                url: "{{ route('editNotificationApi') }}",
-                data: new FormData(this),
-                dataType: 'JSON',
-                processData: false,
-                contentType: false,
-                success: function(data) {
-                    if (jQuery.isEmptyObject(data.error)) {
-                        toastr.success('Notification updated successfully')
-                        spinner.hide();
-                        location.reload();
-                    } else {
-                        spinner.hide();
-                        printErrorMsg(data.error)
-                    }
+
+            jQuery('#add-notification-form').submit(function(e) {
+                e.preventDefault();
+
+                var mode = jQuery('#add_send_to').val();
+                if (mode === 'single_customer' && !jQuery('#add_customers').val()) {
+                    toastr.error('Please select a customer');
+                    return;
                 }
+                if (mode === 'single_advisor' && !jQuery('#add_advisors').val()) {
+                    toastr.error('Please select an advisor');
+                    return;
+                }
+
+                spinner.show();
+                var formData = new FormData(this);
+                if (mode === 'all' || mode === 'all_customers' || mode === 'all_advisors') {
+                    formData.delete('userIds[]');
+                }
+                if (!jQuery('#send_now').is(':checked')) {
+                    formData.delete('send_now');
+                }
+
+                jQuery.ajax({
+                    type: 'POST',
+                    url: "{{ route('addNotificationApi') }}",
+                    data: formData,
+                    dataType: 'JSON',
+                    processData: false,
+                    contentType: false,
+                    timeout: 120000,
+                    success: function(data) {
+                        if (jQuery.isEmptyObject(data.error) || data.status) {
+                            toastr.success(data.message || 'Notification added successfully');
+                            if (data.error) {
+                                spinner.hide();
+                                printErrorMsg(data.error);
+                                return;
+                            }
+                            setTimeout(function() {
+                                location.reload();
+                            }, 500);
+                        } else {
+                            spinner.hide();
+                            printErrorMsg(data.error);
+                        }
+                    },
+                    error: function(xhr, status) {
+                        spinner.hide();
+                        toastr.error(status === 'timeout'
+                            ? 'Sending is taking too long. Please try again or send to a smaller group.'
+                            : 'Failed to add notification');
+                    }
+                });
+            });
+
+            jQuery('#edit-notification-form').submit(function(e) {
+                e.preventDefault();
+                spinner.show();
+                jQuery.ajax({
+                    type: 'POST',
+                    url: "{{ route('editNotificationApi') }}",
+                    data: new FormData(this),
+                    dataType: 'JSON',
+                    processData: false,
+                    contentType: false,
+                    success: function(data) {
+                        spinner.hide();
+                        if (jQuery.isEmptyObject(data.error)) {
+                            toastr.success('Notification updated successfully');
+                            location.reload();
+                        } else {
+                            printErrorMsg(data.error);
+                        }
+                    },
+                    error: function() {
+                        spinner.hide();
+                        toastr.error('Failed to update notification');
+                    }
+                });
             });
         });
 
         function printErrorMsg(msg) {
-            jQuery(".print-name-error-msg").find("ul").html('');
             jQuery.each(msg, function(key, value) {
-                toastr.error(value)
-                // if (key == 'name') {
-                //     jQuery(".print-name-error-msg").css('display', 'block');
-                //     jQuery(".print-name-error-msg").find("ul").append('<li>' + value + '</li>');
-                // }
-            });
-        }
-
-        function filterData() {
-            user_filter = $('#user_filter').val();
-            $ajax({
-                url: "{{ url('filter_user') }}?filter_user=" + user_filter,
-                success: function(data) {
-
+                if (Array.isArray(value)) {
+                    toastr.error(value[0]);
+                } else {
+                    toastr.error(value);
                 }
-            })
-        }
-
-        function searchData() {
-            $("#user_filter").select2({
-                placeholder: "Select a Name",
-                allowClear: true
             });
         }
 
-        function showEditor() {
-
-        }
-    </script>
-    <script>
-        $(document).ready(function() {
-            jQuery('.select2').select2();
+        jQuery(window).on('load', function() {
+            jQuery('.loader').hide();
         });
-    </script>
-    <script>
-        $(window).on('load', function() {
-            $('.loader').hide();
-        })
     </script>
 @endsection

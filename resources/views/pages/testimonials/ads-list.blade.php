@@ -76,7 +76,6 @@
                         <th class="whitespace-nowrap">Start Date</th>
                         <th class="whitespace-nowrap">URL</th>
                         <th class="whitespace-nowrap">Attachment</th>
-                        <th class="text-center whitespace-nowrap">Status</th>
                         <th class="text-center whitespace-nowrap">Enquiry Date</th>
                     </tr>
                 </thead>
@@ -129,18 +128,6 @@
                                 @endif
                             </td>
 
-                            <td class="w-40">
-                                <div
-                                    class="form-check form-switch justify-center w-full sm:w-auto sm:ml-auto
-                                 mt-3 sm:mt-0">
-                                    <input class="toggle-class show-code form-check-input mr-0 ml-3" type="checkbox"
-                                        href="javascript:;" data-tw-toggle="modal" data-onstyle="success"
-                                        data-offstyle="danger" data-toggle="toggle" data-on="Active" data-off="InActive"
-                                        {{ $item['status'] ? 'checked' : '' }}
-                                        onclick="editTestimonial({{ $item['id'] }}, {{$item['status']}})"
-                                        href="$item['id']" data-tw-target="#verified" id="switch">
-                                </div>
-                            </td>
                             <td>
                                 <div class="font-medium whitespace-nowrap">{{ date('d M, Y h:i A', strtotime($item['created_at'])) }}</div>
                             </td>

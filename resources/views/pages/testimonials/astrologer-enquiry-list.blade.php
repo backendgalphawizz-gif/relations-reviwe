@@ -2,7 +2,7 @@
 
 @section('subcontent')
 
-<h2 class="text-lg font-medium mt-10">Astrologer Enquiry</h2>
+<h2 class="text-lg font-medium mt-10">Advisor Enquiry</h2>
 
 <form method="GET" action="{{ route('astrologer.enquiry.list') }}" class="box p-4 mb-4">
     <div class="grid grid-cols-12 gap-4">

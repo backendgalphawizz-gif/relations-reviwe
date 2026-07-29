@@ -1,36 +1,39 @@
-ID,Name,ContactNo,Gender,TotalCallRequest,status
-1,Jai,7532957166,Male,0,Verified
-2,Aniket,9990549584,Male,0,Verified
-3,AgentX,8796500743,Male,2,Verified
-4,Kunal,9654196541,male,0,UnVerified
-5,Ramesh,9873219873,Male,8,UnVerified
-6,Hshwh,6665554444,Male,12,UnVerified
-7,"SAWAN Shakya",9999996666,Male,28,UnVerified
-8,dsafds,5564564564,male,7,UnVerified
-9,Tarun,8888899991,Male,5,UnVerified
-10,"Harsh S",8888899999,male,0,UnVerified
-11,Bibibi,8218218218,Male,0,UnVerified
-12,sdsad,9090545454,Male,0,UnVerified
-13,sdsa,9090905453,Male,0,UnVerified
-14,fdsfdd,9090909554,Male,0,UnVerified
-15,rak,9090909091,Male,0,UnVerified
-16,Atul,9998881115,male,0,UnVerified
-17,Sawan,7777777770,Female,0,UnVerified
-18,xcz,9999888815,Male,0,UnVerified
-19,dsdas,9999999999,male,0,UnVerified
-20,"Arun sharma",7777777777,male,0,UnVerified
-21,Taran,9999988888,male,0,UnVerified
-22,sawan,9754274333,Male,0,UnVerified
-23,Atul,7000541557,Male,0,UnVerified
-24,Krishna,8423140295,Male,14,Verified
-25,Trail,9899027030,Male,0,UnVerified
-26,Test,9988454580,Male,0,UnVerified
-27,Test,1234567890,Male,0,UnVerified
-28,"Krishna Kumar",9811990721,Male,0,UnVerified
-29,Mayophy,8851979800,Male,0,UnVerified
-30,"Babu Lal tamatar",8375902360,Male,0,UnVerified
-31,Wonwon,9205806585,Female,0,UnVerified
-32,"Aniket Patel",7520169417,Male,11,UnVerified
-33,Aniket,8527984701,Male,0,UnVerified
-34,Akash,0000000002,Male,0,UnVerified
-35,"Agastya Sharma 1",9074305952,Male,39,Verified
+ID,Name,ContactNo,Gender,DateOfBirth,AdvisorCategory,PrimarySkill,Language,ExperienceInYears,TotalCallRequest,status
+1,Prem,7503889598,Male,01-06-1994,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening","Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Relationship Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Relationship Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Relationship Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Relationship Skills",English,0,3,UnVerified
+2,"Sahib Da",8327265113,Male,22-03-2013,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship","Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills","English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil",0,7,UnVerified
+3,Amrutha,9625140822,Female,18-05-1995,"Constant Fighting & Arguments, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Third party involvement, Constant Fighting & Arguments, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Third party involvement, Constant Fighting & Arguments, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Third party involvement, Constant Fighting & Arguments, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Third party involvement, Constant Fighting & Arguments, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Third party involvement","Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills","English, Hindi, English, Hindi",0,5,UnVerified
+4,Jai,7532957166,Male,17-06-1993,"Business & Career Growth, Business Loss, Toxic Relationship, Business & Career Growth, Business Loss, Toxic Relationship, Business & Career Growth, Business Loss, Toxic Relationship","Emotional & Mental Health Skills, Relationship Skills, Emotional & Mental Health Skills, Relationship Skills","Hindi, Punjabi, Tamil, Hindi, Punjabi, Tamil, Hindi, Punjabi, Tamil",0,2,UnVerified
+5,Aniket,9990549584,Male,11-03-2005,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship","Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills, Career & Business Skills, Family Skills, Emotional & Mental Health Skills","English, Hindi, Punjabi, English, Hindi, Punjabi, English, Hindi, Punjabi",0,13,Verified
+6,AgentX,8796500743,Male,19-06-2002,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship",52,"English, Hindi, English, Hindi",0,2,UnVerified
+7,Kunal,9654196541,male,16-06-2008,"Past Relationship Heartbreak",51,English,3,0,UnVerified
+8,Ramesh,9873219873,Male,17-06-1998,"Business & Career Growth, Loneliness After Breakup, Childhood Trauma, Trust Issue, In-Law Interference","51, 52",English,0,8,UnVerified
+9,Hshwh,6665554444,Male,25-12-1999,"Constant Fighting & Arguments","51, 52","English, Hindi, Punjabi",0,12,UnVerified
+10,"SAWAN Shakya",9999996666,Male,01-12-2025,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Loneliness After Breakup","51, 52","English, Hindi",0,28,UnVerified
+11,dsafds,5564564564,male,03-12-2007,"Business & Career Growth, Business Loss",52,"English, Hindi",5,7,UnVerified
+12,Tarun,8888899991,Male,03-12-2007,"Constant Fighting & Arguments","51, 52","English, Hindi",0,5,UnVerified
+13,"Harsh S",8888899999,male,22-08-2000,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Loneliness After Breakup, Can't Stop Thinking About Ex",52,"English, Hindi",5,0,UnVerified
+14,Bibibi,8218218218,Male,23-12-2001,"Business & Career Growth, Business Loss, Child Not Listening, Loneliness After Breakup, Business & Career Growth, Business Loss, Child Not Listening, Loneliness After Breakup, Business & Career Growth, Business Loss, Child Not Listening, Loneliness After Breakup, Business & Career Growth, Business Loss, Child Not Listening, Loneliness After Breakup","51, 52, 55, 51, 52, 55, 51, 52, 55","English, Hindi, English, Hindi",0,0,UnVerified
+15,sdsad,9090545454,Male,22-12-2025,"Business & Career Growth",51,"English, Hindi, English, Hindi",0,0,UnVerified
+16,sdsa,9090905453,Male,17-12-2025,"Business & Career Growth",55,Hindi,0,0,UnVerified
+17,fdsfdd,9090909554,Male,10-12-2025,"Business Loss",52,Hindi,0,0,UnVerified
+18,rak,9090909091,Male,15-12-2025,"Business Loss",51,Hindi,0,0,UnVerified
+19,Atul,9998881115,male,01-12-2007,"Business & Career Growth, Toxic Relationship, Child Not Listening","51, 52","Hindi, Punjabi",3,0,UnVerified
+20,Sawan,7777777770,Female,04-12-2007,"Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening","51, 52, 55","English, Hindi",2,0,UnVerified
+21,xcz,9999888815,Male,03-12-2007,"Business & Career Growth",51,Hindi,3,0,UnVerified
+22,dsdas,9999999999,male,10-02-2004,"Can't Stop Thinking About Ex","51, 52","English, Hindi",3,0,UnVerified
+23,"Arun sharma",7777777777,male,05-12-2007,"Constant Fighting & Arguments, Business & Career Growth, Business Loss",51,"English, Hindi",4,0,UnVerified
+24,Taran,9999988888,male,04-12-2007,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship",51,"English, Hindi, Tamil",6,0,UnVerified
+25,sawan,9754274333,Male,06-06-2002,"Constant Fighting & Arguments, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business Loss, Toxic Relationship, Constant Fighting & Arguments, Business Loss, Toxic Relationship","51, 52, 51, 52","English, Hindi, Marathi, English, Hindi, Marathi, English, Hindi, Marathi",0,0,UnVerified
+26,Atul,7000541557,Male,16-09-1998,"Third party involvement",51,English,5,0,UnVerified
+27,Krishna,8423140295,Male,19-09-2001,"Constant Fighting & Arguments, Business Loss, Toxic Relationship, Loneliness After Breakup, Third party involvement",52,"English, Hindi",0,14,Verified
+28,Trail,9899027030,Male,01-08-2002,"Third party involvement","51, 52","English, Hindi, Punjabi",0,0,UnVerified
+29,Test,9988454580,Male,11-03-2005,"Constant Fighting & Arguments, Business & Career Growth, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Toxic Relationship, Constant Fighting & Arguments, Business & Career Growth, Toxic Relationship","51, 52, 51, 52","English, Hindi, Odia, English, Hindi, Odia, English, Hindi, Odia",0,0,UnVerified
+30,Test,1234567890,Male,03-07-2004,"Constant Fighting & Arguments",51,"English, Hindi, English, Hindi",0,0,UnVerified
+31,"Krishna Kumar",9811990721,Male,15-06-2004,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Constant Fighting & Arguments, Business & Career Growth, Business Loss, Constant Fighting & Arguments, Business & Career Growth, Business Loss",51,"English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil",0,0,UnVerified
+32,Mayophy,8851979800,Male,01-05-2001,"Business Loss, Toxic Relationship, Business Loss, Toxic Relationship","51, 52, 51, 52","English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil, English, Hindi, Punjabi, Tamil",0,0,UnVerified
+33,"Babu Lal tamatar",8375902360,Male,01-06-2001,"Business & Career Growth, Toxic Relationship, Business & Career Growth, Toxic Relationship","51, 52, 51, 52","Hindi, Punjabi, Hindi, Punjabi",0,0,UnVerified
+34,Wonwon,9205806585,Female,09-06-2002,"Constant Fighting & Arguments","51, 52, 51, 52","English, Hindi, English, Hindi",0,0,UnVerified
+35,"Aniket Patel",7520169417,Male,11-03-2005,"Constant Fighting & Arguments, Business & Career Growth, Business Loss, Toxic Relationship, Child Not Listening, Loneliness After Breakup","51, 52","English, Hindi, Odia",0,11,UnVerified
+36,Aniket,8527984701,Male,11-03-2005,"Constant Fighting & Arguments, Business & Career Growth, Business Loss","51, 52","English, Hindi",0,0,UnVerified
+37,Akash,0000000002,Male,20-05-2025,"Constant Fighting & Arguments",51,Marathi,0,0,UnVerified
+38,"Agastya Sharma 1",9074305952,Male,01-11-2007,"Childhood Trauma","51, 52",Hindi,1,39,UnVerified

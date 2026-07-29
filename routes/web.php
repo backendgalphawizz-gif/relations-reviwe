@@ -474,7 +474,22 @@ Route::group(['middleware' => ['web']], function () {
         Route::post('rechargeAmount', [RechargeController::class, 'getRechargeAmount'])->name('rechargeAmount');
         Route::post('addRechargeAmount', [RechargeController::class, 'addRechargeAmount'])->name('addRechargeAmount');
         Route::get('/404', function () {
-            return view('pages/404');
+            if (\Auth::guard('advisor')->check()) {
+                $homeUrl = url('/advisor/dashboard');
+            } elseif (\Auth::guard('web')->check() || \Auth::check()) {
+                $homeUrl = url('/admin/dashboard');
+            } else {
+                $homeUrl = session('error_home_url', url('/admin/login'));
+            }
+
+            $data = ['homeUrl' => $homeUrl];
+
+            // side-menu layout requires admin auth; otherwise use main (same error-page look)
+            if (!\Auth::guard('web')->check() && !\Auth::check()) {
+                $data['layout'] = 'main';
+            }
+
+            return view('pages/404', $data);
         });
         Route::get('horoscopeFeedback', [DailyHoroScopeController::class, 'getHoroscopeFeedback'])->name('horoscopeFeedback');
         Route::post('horoscopeFeedback', [DailyHoroScopeController::class, 'getHoroscopeFeedback'])->name('horoscopeFeedback');

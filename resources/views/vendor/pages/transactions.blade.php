@@ -39,7 +39,7 @@
                 <tfoot>
                     <tr>
                         <th colspan="6">
-                            {!! $transactions->links() !!}
+                            {!! $transactions->links('vendor.pagination.advisor') !!}
                             {{-- @if (count($transactions) > 0)
                                 @if ($totalRecords > 0)
                                     <div>

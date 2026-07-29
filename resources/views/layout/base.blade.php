@@ -88,6 +88,42 @@ License: You must have a valid license purchased only from themeforest(the above
 
         }
 
+        /* Hide scrollbars (admin panel) — scrolling still works */
+        html,
+        body,
+        .content,
+        .side-nav,
+        .scrollable,
+        .list-table,
+        .setting-page,
+        .grid-table,
+        .grid-table-without-search,
+        .daily,
+        .withoutsearch {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        .content::-webkit-scrollbar,
+        .side-nav::-webkit-scrollbar,
+        .scrollable::-webkit-scrollbar,
+        .list-table::-webkit-scrollbar,
+        .setting-page::-webkit-scrollbar,
+        .grid-table::-webkit-scrollbar,
+        .grid-table-without-search::-webkit-scrollbar,
+        .daily::-webkit-scrollbar,
+        .withoutsearch::-webkit-scrollbar {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+        }
+
+        .simplebar-track {
+            display: none !important;
+        }
+
 
 
         .edit-modal {
@@ -640,7 +676,88 @@ License: You must have a valid license purchased only from themeforest(the above
 
 </script>
 
+@auth
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging.js";
 
+    const firebaseConfig = {
+        apiKey: "AIzaSyAbVv-H2kbOH1REQ2ggNc7xxg0Bh9LfT28",
+        authDomain: "realtionship-849b1.firebaseapp.com",
+        databaseURL: "https://realtionship-849b1-default-rtdb.firebaseio.com",
+        projectId: "realtionship-849b1",
+        storageBucket: "realtionship-849b1.firebasestorage.app",
+        messagingSenderId: "884911350693",
+        appId: "1:884911350693:web:86f89b3a009d9fe8823e4c",
+        measurementId: "G-2QD0G6R41N"
+    };
+
+    const canUseWebPush = () =>
+        window.isSecureContext &&
+        'Notification' in window &&
+        'serviceWorker' in navigator &&
+        'PushManager' in window;
+
+    async function registerAdminFcmToken() {
+        try {
+            if (!canUseWebPush()) return;
+
+            const permission = Notification.permission === 'granted'
+                ? 'granted'
+                : await Notification.requestPermission();
+            if (permission !== 'granted') return;
+
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            await navigator.serviceWorker.ready;
+
+            const app = initializeApp(firebaseConfig);
+            const messaging = getMessaging(app);
+            const token = await getToken(messaging, {
+                vapidKey: "BCzv6CBSKQZ7v9YjUuzJj_brefX2mmEB1g_ZAZ9Z4urRJ5SB2Kjj6Ah05SeWg-vZEZnaAe-LfuaaMmNz87iYGFY",
+                serviceWorkerRegistration: registration
+            });
+            if (!token) return;
+
+            const res = await fetch("{{ route('save-token') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    fcm_token: token,
+                    user_id: {{ auth()->id() ?? 'null' }},
+                    appId: 4,
+                    userAgent: navigator.userAgent,
+                    osName: navigator.platform || 'web',
+                    appVersion: navigator.appVersion || 'admin-web'
+                })
+            });
+
+            if (!res.ok) {
+                console.warn('Failed to save admin FCM token', await res.text());
+                return;
+            }
+
+            onMessage(messaging, (payload) => {
+                const title = payload?.notification?.title || 'Notification';
+                const body = payload?.notification?.body || '';
+                if (window.toastr) {
+                    toastr.info(body, title);
+                }
+            });
+        } catch (err) {
+            console.error('Admin FCM register failed', err);
+        }
+    }
+
+    if (canUseWebPush()) {
+        registerAdminFcmToken();
+    }
+</script>
+@endauth
 
 </html>
 

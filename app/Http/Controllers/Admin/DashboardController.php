@@ -171,23 +171,46 @@ class DashboardController extends Controller
                     array_push($astroTi, $monthAstroCommission);
                 }
                 $unverifiedAstrologer = DB::table('astrologers')
-                    ->where('isVerified', '=', 'false')
-                    ->get();
+                    ->where(function ($q) {
+                        $q->where('isVerified', 0)
+                            ->orWhere('isVerified', '0')
+                            ->orWhere('isVerified', false)
+                            ->orWhere('isVerified', 'false');
+                    })
+                    ->orderByDesc('id')
+                    ->paginate(10, ['*'], 'unverified_page')
+                    ->withQueryString();
+
                 foreach ($unverifiedAstrologer as $astrologers) {
-                    $allSkill = array_map('intval', explode(',', $astrologers->allSkill));
-                    $languages = array_map('intval', explode(',', $astrologers->languageKnown));
-                    $allSkill = DB::table('skills')
-                        ->whereIn('id', $allSkill)
-                        ->select('name')
-                        ->get();
-                    $skill = $allSkill->pluck('name')->all();
-                    $astrologers->allSkill = implode(",", $skill);
-                    $languageKnown = DB::table('languages')
-                        ->whereIn('id', $languages)
-                        ->select('languageName')
-                        ->get();
-                    $languageKnown = $languageKnown->pluck('languageName')->all();
-                    $astrologers->languageKnown = implode(",", $languageKnown);
+                    // Newer advisors store skills in primarySkill; allSkill is often empty
+                    $skillSource = trim((string) ($astrologers->allSkill ?? ''));
+                    if ($skillSource === '') {
+                        $skillSource = trim((string) ($astrologers->primarySkill ?? ''));
+                    }
+
+                    $skillIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $skillSource)))));
+                    $languageIds = array_values(array_unique(array_filter(array_map(
+                        'intval',
+                        explode(',', (string) ($astrologers->languageKnown ?? ''))
+                    ))));
+
+                    $skillNames = [];
+                    if (!empty($skillIds)) {
+                        $skillNames = DB::table('skills')
+                            ->whereIn('id', $skillIds)
+                            ->pluck('name')
+                            ->all();
+                    }
+                    $astrologers->allSkill = !empty($skillNames) ? implode(', ', $skillNames) : '-';
+
+                    $languageNames = [];
+                    if (!empty($languageIds)) {
+                        $languageNames = DB::table('languages')
+                            ->whereIn('id', $languageIds)
+                            ->pluck('languageName')
+                            ->all();
+                    }
+                    $astrologers->languageKnown = !empty($languageNames) ? implode(', ', $languageNames) : '-';
                 }
                 $dashboardData = ([
                     "totalCallRequest" => $totalCallRequest,
@@ -239,7 +262,18 @@ class DashboardController extends Controller
                     array_push($reportData, $report['totalReport']);
                 }
                 $result = $dashboardData;
-                return view('pages.dashboard-overview-1', compact('result', 'labels', 'data', 'astroLabels', 'astroData', 'vcallData', 'callData', 'chatData', 'reportData'));
+                return view('pages.dashboard-overview-1', compact(
+                    'result',
+                    'labels',
+                    'data',
+                    'astroLabels',
+                    'astroData',
+                    'vcallData',
+                    'callData',
+                    'chatData',
+                    'reportData',
+                    'unverifiedAstrologer'
+                ));
             } else {
                 return redirect('admin/login');
             }

@@ -70,33 +70,15 @@ class DashboardController extends Controller
                 $showActions = true;
                 break;
             case 'rejected':
-                // Own rejected calls + sequential calls this advisor explicitly rejected
-                $listQuery->where(function ($q) use ($astroId) {
-                    $q->where(function ($own) use ($astroId) {
-                        $own->where('astrologerId', $astroId)
-                            ->where('callStatus', 'Rejected');
-                    })->orWhere(function ($explicit) use ($astroId) {
-                        $explicit->whereJsonContains('rejected_astrologer_ids', $astroId)
-                            ->orWhereJsonContains('rejected_astrologer_ids', (string) $astroId);
-                    });
-                });
+                // Only: Reject by Me, or Customer cancel while this advisor had the call
+                // Time Over → Missed Calls (not here)
+                $this->scopeAdvisorRejectedCalls($listQuery, $astroId);
                 $listTitle = 'Rejected Calls';
                 $showActions = false;
                 break;
             case 'missed':
-                // Timed out / moved on — exclude advisors who explicitly rejected
-                $listQuery->where(function ($q) use ($astroId) {
-                        $q->whereJsonContains('tried_astrologer_ids', $astroId)
-                            ->orWhereJsonContains('tried_astrologer_ids', (string) $astroId);
-                    })
-                    ->where('astrologerId', '!=', $astroId)
-                    ->where(function ($q) use ($astroId) {
-                        $q->whereNull('rejected_astrologer_ids')
-                            ->orWhere(function ($notRejected) use ($astroId) {
-                                $notRejected->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
-                                    ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
-                            });
-                    });
+                // Ring timeout / moved on (Time Over) — not explicit reject or customer cancel
+                $this->scopeAdvisorMissedCalls($listQuery, $astroId);
                 $listTitle = 'Missed Calls';
                 $showActions = false;
                 break;
@@ -136,32 +118,13 @@ class DashboardController extends Controller
             }
         }
 
-        $missedCallCount = CallRequest::query()
-            ->where(function ($q) use ($astroId) {
-                $q->whereJsonContains('tried_astrologer_ids', $astroId)
-                    ->orWhereJsonContains('tried_astrologer_ids', (string) $astroId);
-            })
-            ->where('astrologerId', '!=', $astroId)
-            ->where(function ($q) use ($astroId) {
-                $q->whereNull('rejected_astrologer_ids')
-                    ->orWhere(function ($notRejected) use ($astroId) {
-                        $notRejected->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
-                            ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
-                    });
-            })
-            ->count();
+        $missedCallCount = CallRequest::query();
+        $this->scopeAdvisorMissedCalls($missedCallCount, $astroId);
+        $missedCallCount = $missedCallCount->count();
 
-        $rejectedCallCount = CallRequest::query()
-            ->where(function ($q) use ($astroId) {
-                $q->where(function ($own) use ($astroId) {
-                    $own->where('astrologerId', $astroId)
-                        ->where('callStatus', 'Rejected');
-                })->orWhere(function ($explicit) use ($astroId) {
-                    $explicit->whereJsonContains('rejected_astrologer_ids', $astroId)
-                        ->orWhereJsonContains('rejected_astrologer_ids', (string) $astroId);
-                });
-            })
-            ->count();
+        $rejectedCallCount = CallRequest::query();
+        $this->scopeAdvisorRejectedCalls($rejectedCallCount, $astroId);
+        $rejectedCallCount = $rejectedCallCount->count();
 
         $result = [
             "totalCallRequest" => CallRequest::where('astrologerId', $astroId)->whereIn('callStatus', ['Pending', 'Accepted', 'Confirmed', 'Completed'])->count(),
@@ -194,6 +157,98 @@ class DashboardController extends Controller
     }
 
     /**
+     * Rejected Calls: only Me (advisor reject) or Customer (cancel while this advisor had the call).
+     * Time Over belongs in Missed Calls.
+     */
+    protected function scopeAdvisorRejectedCalls($query, int $astroId): void
+    {
+        $query->where(function ($q) use ($astroId) {
+            // Explicit Reject by this advisor
+            $q->where(function ($explicit) use ($astroId) {
+                $explicit->whereJsonContains('rejected_astrologer_ids', $astroId)
+                    ->orWhereJsonContains('rejected_astrologer_ids', (string) $astroId);
+            })
+            // Customer cancelled while this advisor was ringing / assigned
+            ->orWhere(function ($customer) use ($astroId) {
+                $customer->where('astrologerId', $astroId)
+                    ->where('callStatus', 'Rejected')
+                    ->where(function ($by) {
+                        $by->where('rejected_by', 'customer')
+                            // Legacy rows: non-sequential reject without rejected_by = customer cancel
+                            ->orWhere(function ($legacy) {
+                                $legacy->where(function ($rb) {
+                                    $rb->whereNull('rejected_by')->orWhere('rejected_by', '');
+                                })->where(function ($seq) {
+                                    $seq->whereNull('is_sequential')
+                                        ->orWhere('is_sequential', 0)
+                                        ->orWhere('is_sequential', false);
+                                });
+                            });
+                    })
+                    ->where(function ($notTimeout) {
+                        $notTimeout->whereNull('rejected_by')
+                            ->orWhere('rejected_by', '!=', 'timeout');
+                    })
+                    ->where(function ($notMe) use ($astroId) {
+                        $notMe->whereNull('rejected_astrologer_ids')
+                            ->orWhere(function ($nr) use ($astroId) {
+                                $nr->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
+                                    ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
+                            });
+                    });
+            });
+        });
+    }
+
+    /**
+     * Missed Calls (Time Over): ring timed out / moved to another advisor.
+     */
+    protected function scopeAdvisorMissedCalls($query, int $astroId): void
+    {
+        $query->where(function ($q) use ($astroId) {
+            // Timed out and call moved on to another advisor
+            $q->where(function ($moved) use ($astroId) {
+                $moved->where(function ($tried) use ($astroId) {
+                    $tried->whereJsonContains('tried_astrologer_ids', $astroId)
+                        ->orWhereJsonContains('tried_astrologer_ids', (string) $astroId);
+                })
+                    ->where('astrologerId', '!=', $astroId)
+                    ->where(function ($notRejected) use ($astroId) {
+                        $notRejected->whereNull('rejected_astrologer_ids')
+                            ->orWhere(function ($nr) use ($astroId) {
+                                $nr->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
+                                    ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
+                            });
+                    });
+            })
+            // Time Over exhausted while still assigned to this advisor
+            ->orWhere(function ($timeoutMine) use ($astroId) {
+                $timeoutMine->where('astrologerId', $astroId)
+                    ->where('callStatus', 'Rejected')
+                    ->where(function ($by) {
+                        $by->where('rejected_by', 'timeout')
+                            // Legacy sequential Rejected without rejected_by = timeout exhaust
+                            ->orWhere(function ($legacy) {
+                                $legacy->where(function ($rb) {
+                                    $rb->whereNull('rejected_by')->orWhere('rejected_by', '');
+                                })->where(function ($seq) {
+                                    $seq->where('is_sequential', 1)
+                                        ->orWhere('is_sequential', true);
+                                });
+                            });
+                    })
+                    ->where(function ($notRejected) use ($astroId) {
+                        $notRejected->whereNull('rejected_astrologer_ids')
+                            ->orWhere(function ($nr) use ($astroId) {
+                                $nr->whereJsonDoesntContain('rejected_astrologer_ids', $astroId)
+                                    ->whereJsonDoesntContain('rejected_astrologer_ids', (string) $astroId);
+                            });
+                    });
+            });
+        });
+    }
+
+    /**
      * Rejected By column for current advisor:
      * - Me → this advisor pressed Reject
      * - Time Over → ring missed / timed out (any advisor miss)
@@ -211,30 +266,28 @@ class DashboardController extends Controller
         $reason = strtolower(trim((string) ($call->rejected_by ?? '')));
 
         // Explicit Reject by this advisor always wins
-        if ($iRejected || $reason === 'advisor') {
-            if ($iRejected || (int) $call->astrologerId === $astroId) {
-                return 'Me';
-            }
+        if ($iRejected) {
+            return 'Me';
+        }
+        if ($reason === 'advisor' && (int) $call->astrologerId === $astroId) {
+            return 'Me';
         }
 
-        // Stored reason from cancel / timeout exhaust
+        // Customer cancelled while this advisor had the call
         if ($reason === 'customer' && (int) $call->astrologerId === $astroId) {
             return 'Customer';
         }
+
+        // Timeout / miss
         if ($reason === 'timeout') {
             return 'Time Over';
         }
-        if ($reason === 'customer') {
-            // Customer cancelled on another advisor; if I only timed out earlier, still Time Over
-            return $iTried ? 'Time Over' : 'Customer';
-        }
 
-        // Legacy rows (no rejected_by): infer
+        // Legacy inference
         if ($iTried && (bool) $call->is_sequential) {
             return 'Time Over';
         }
         if ((int) $call->astrologerId === $astroId && $call->callStatus === 'Rejected') {
-            // Assigned to me, not my Reject → customer cancelled
             return 'Customer';
         }
 

@@ -216,6 +216,7 @@ Route::post('dashboard', [DashboardController::class, 'getDashboard'])->name('ge
 Route::get('commissions', [CommissionController::class, 'addCommission'])->name('commissions');
 Route::post('addCommissionApi', [CommissionController::class, 'addCommissionApi'])->name('addCommissionApi');
 
+
 // Route::group(['middleware'=>'web'],function(){
 Route::group(['middleware' => ['web']], function () {
     // Route::get('dashboard', [DashboardController::class, 'getDashboard'])->name('dashboard');

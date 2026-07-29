@@ -18,7 +18,7 @@ jobs:
         with:
           switches: "-avzr --checksum --exclude='.git*' --exclude='.github*' --exclude='.env' --exclude='node_modules'"
           path: ./
-          remote_path: /home/${{ secrets.SERVER_USER }}/public_html/relationship-revive.com/
+          remote_path: /home/${{ secrets.SERVER_USER }}/public_html/relationship.alphawizzserver.com/
           remote_host: ${{ secrets.SERVER_IP }}
           remote_user: ${{ secrets.SERVER_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
